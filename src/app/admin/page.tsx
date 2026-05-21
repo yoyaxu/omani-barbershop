@@ -19,6 +19,8 @@ import {
   Pencil,
   Save,
   X,
+  Plus,
+  CalendarPlus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -198,6 +200,193 @@ function LoginForm({ onLogin }: { onLogin: () => void }) {
   );
 }
 
+// ─── Create Appointment Component ─────────────────────────────────
+function CreateAppointmentForm({
+  onSave,
+  onCancel,
+}: {
+  onSave: (data: Omit<Appointment, "id" | "status" | "createdAt">) => void;
+  onCancel: () => void;
+}) {
+  const [form, setForm] = useState({
+    name: "",
+    phone: "",
+    service: "",
+    date: "",
+    time: "",
+    notes: "",
+  });
+  const [saving, setSaving] = useState(false);
+  const [bookedTimes, setBookedTimes] = useState<string[]>([]);
+
+  // Fetch availability when date changes
+  useEffect(() => {
+    if (form.date) {
+      fetch(`/api/appointments/availability?date=${form.date}`)
+        .then((res) => res.json())
+        .then((data) => setBookedTimes(data.bookedTimes || []))
+        .catch(() => setBookedTimes([]));
+    } else {
+      setBookedTimes([]);
+    }
+  }, [form.date]);
+
+  const availableSlots = TIME_SLOTS.filter((t) => !bookedTimes.includes(t));
+
+  const handleSave = async () => {
+    if (!form.name || !form.phone || !form.service || !form.date || !form.time) {
+      return;
+    }
+    setSaving(true);
+    try {
+      await onSave(form);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const today = new Date().toISOString().split("T")[0];
+
+  return (
+    <div className="bg-card border border-primary/30 rounded-xl p-5 space-y-4">
+      <h3 className="text-base font-bold text-primary flex items-center gap-2">
+        <CalendarPlus className="w-4 h-4" />
+        Agendar Cita Manualmente
+      </h3>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <Label className="text-xs">Nombre *</Label>
+          <Input
+            value={form.name}
+            onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+            placeholder="Nombre del cliente"
+            className="h-9 text-sm bg-secondary border-border"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs">Teléfono *</Label>
+          <Input
+            value={form.phone}
+            onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))}
+            placeholder="(809) 555-1234"
+            type="tel"
+            className="h-9 text-sm bg-secondary border-border"
+          />
+        </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label className="text-xs">Servicio *</Label>
+        <Select
+          value={form.service}
+          onValueChange={(v) => setForm((p) => ({ ...p, service: v }))}
+        >
+          <SelectTrigger className="h-9 text-sm bg-secondary border-border">
+            <SelectValue placeholder="Selecciona un servicio" />
+          </SelectTrigger>
+          <SelectContent>
+            {SERVICES_LIST.map((s) => (
+              <SelectItem key={s.id} value={s.id}>
+                {s.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <Label className="text-xs">Fecha *</Label>
+          <Input
+            type="date"
+            min={today}
+            value={form.date}
+            onChange={(e) => {
+              setForm((p) => ({ ...p, date: e.target.value, time: "" }));
+            }}
+            className="h-9 text-sm bg-secondary border-border"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs">Hora *</Label>
+          <Select
+            value={form.time}
+            onValueChange={(v) => setForm((p) => ({ ...p, time: v }))}
+            disabled={!form.date}
+          >
+            <SelectTrigger className="h-9 text-sm bg-secondary border-border">
+              <SelectValue
+                placeholder={
+                  !form.date
+                    ? "Fecha primero"
+                    : availableSlots.length === 0
+                    ? "Sin disponibilidad"
+                    : "Selecciona hora"
+                }
+              />
+            </SelectTrigger>
+            <SelectContent>
+              {availableSlots.length === 0 ? (
+                <div className="px-3 py-2 text-sm text-muted-foreground text-center">
+                  No hay horarios disponibles
+                </div>
+              ) : (
+                availableSlots.map((t) => (
+                  <SelectItem key={t} value={t}>
+                    {t}
+                  </SelectItem>
+                ))
+              )}
+            </SelectContent>
+          </Select>
+          {form.date && bookedTimes.length > 0 && (
+            <p className="text-[10px] text-muted-foreground">
+              {availableSlots.length} disponible{availableSlots.length !== 1 ? "s" : ""}
+            </p>
+          )}
+        </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label className="text-xs">Notas</Label>
+        <Textarea
+          value={form.notes}
+          onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))}
+          className="text-sm bg-secondary border-border"
+          rows={2}
+          placeholder="Notas opcionales..."
+        />
+      </div>
+
+      <div className="flex gap-2 pt-1">
+        <Button
+          size="sm"
+          className="bg-primary hover:bg-primary/90 text-primary-foreground"
+          onClick={handleSave}
+          disabled={saving || !form.name || !form.phone || !form.service || !form.date || !form.time}
+        >
+          {saving ? (
+            <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
+          ) : (
+            <Plus className="w-3.5 h-3.5 mr-1" />
+          )}
+          Crear Cita
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="text-muted-foreground"
+          onClick={onCancel}
+        >
+          <X className="w-3.5 h-3.5 mr-1" />
+          Cancelar
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Edit Appointment Component ───────────────────────────────────
 function EditAppointmentForm({
   appointment,
@@ -341,6 +530,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState<string>("all");
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [showCreateForm, setShowCreateForm] = useState(false);
 
   const fetchAppointments = useCallback(async () => {
     setLoading(true);
@@ -400,6 +590,22 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     }
   };
 
+  const createAppointment = async (data: Omit<Appointment, "id" | "status" | "createdAt">) => {
+    try {
+      const res = await fetch("/api/appointments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error("Error creating");
+      const result = await res.json();
+      setAppointments((prev) => [result.appointment, ...prev]);
+      setShowCreateForm(false);
+    } catch (err) {
+      console.error("Error creating appointment:", err);
+    }
+  };
+
   const deleteAppointment = async (id: string) => {
     if (!confirm("¿Seguro que deseas eliminar esta cita?")) return;
     try {
@@ -418,9 +624,9 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     const serviceName = SERVICE_NAMES[apt.service] || apt.service;
     const msg = encodeURIComponent(
       `Hola ${apt.name}, te escribimos de Omani Barbershop para confirmar tu cita:\n\n` +
-        `✂️ Servicio: ${serviceName}\n` +
-        `📅 Fecha: ${apt.date}\n` +
-        `🕐 Hora: ${apt.time}\n\n` +
+        `Servicio: ${serviceName}\n` +
+        `Fecha: ${apt.date}\n` +
+        `Hora: ${apt.time}\n\n` +
         `¿Confirma su asistencia?`
     );
     const cleanPhone = apt.phone.replace(/\D/g, "");
@@ -543,26 +749,50 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
           ))}
         </div>
 
-        {/* Refresh */}
+        {/* Header Row: Title + Actions */}
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-bold">
             {filter === "all" ? "Todas las Citas" : STATUS_CONFIG[filter]?.label || "Citas"}
           </h2>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={fetchAppointments}
-            disabled={loading}
-            className="text-muted-foreground"
-          >
-            {loading ? (
-              <Loader2 className="w-4 h-4 animate-spin mr-1" />
-            ) : (
-              <RefreshCw className="w-4 h-4 mr-1" />
-            )}
-            Actualizar
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground"
+              onClick={() => setShowCreateForm(!showCreateForm)}
+            >
+              {showCreateForm ? (
+                <X className="w-4 h-4 mr-1" />
+              ) : (
+                <Plus className="w-4 h-4 mr-1" />
+              )}
+              Nueva Cita
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={fetchAppointments}
+              disabled={loading}
+              className="text-muted-foreground"
+            >
+              {loading ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-1" />
+              ) : (
+                <RefreshCw className="w-4 h-4 mr-1" />
+              )}
+              Actualizar
+            </Button>
+          </div>
         </div>
+
+        {/* Create Appointment Form */}
+        {showCreateForm && (
+          <div className="mb-4">
+            <CreateAppointmentForm
+              onSave={createAppointment}
+              onCancel={() => setShowCreateForm(false)}
+            />
+          </div>
+        )}
 
         {/* Appointments List */}
         <div className="space-y-3">
@@ -688,7 +918,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
 
                   {apt.notes && (
                     <p className="mt-2 text-xs text-muted-foreground bg-background/50 rounded-lg px-3 py-2 italic">
-                      📝 {apt.notes}
+                      {apt.notes}
                     </p>
                   )}
 

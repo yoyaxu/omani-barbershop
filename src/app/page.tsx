@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, useInView } from "framer-motion";
 import {
   Scissors,
@@ -12,7 +12,7 @@ import {
   Star,
   ChevronDown,
   MessageCircle,
-  CalendarCheck,
+  CalendarDays,
   User,
   CheckCircle2,
   Loader2,
@@ -95,7 +95,7 @@ const GALLERY_IMAGES = [
   { src: "/gallery-6.jpg", alt: "Corte para niños" },
 ];
 
-const TIME_SLOTS = [
+const ALL_TIME_SLOTS = [
   "9:00 AM",
   "9:30 AM",
   "10:00 AM",
@@ -171,6 +171,8 @@ export default function HomePage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [whatsappNotifyUrl, setWhatsappNotifyUrl] = useState<string | null>(null);
+  const [bookedTimes, setBookedTimes] = useState<string[]>([]);
+  const [loadingAvailability, setLoadingAvailability] = useState(false);
   const [form, setForm] = useState({
     name: "",
     phone: "",
@@ -185,6 +187,47 @@ export default function HomePage() {
   ) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
+
+  // Fetch available time slots when date changes
+  const fetchAvailability = useCallback(async (date: string) => {
+    if (!date) {
+      setBookedTimes([]);
+      return;
+    }
+    setLoadingAvailability(true);
+    try {
+      const res = await fetch(`/api/appointments/availability?date=${date}`);
+      if (res.ok) {
+        const data = await res.json();
+        setBookedTimes(data.bookedTimes || []);
+      }
+    } catch {
+      setBookedTimes([]);
+    } finally {
+      setLoadingAvailability(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (form.date) {
+      fetchAvailability(form.date);
+      // Reset time if it's now booked
+      setForm((prev) => {
+        if (prev.time && bookedTimes.includes(prev.time)) {
+          return { ...prev, time: "" };
+        }
+        return prev;
+      });
+    } else {
+      setBookedTimes([]);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.date, fetchAvailability]);
+
+  // Filter available time slots
+  const availableTimeSlots = ALL_TIME_SLOTS.filter(
+    (t) => !bookedTimes.includes(t)
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -398,7 +441,7 @@ export default function HomePage() {
                   size="lg"
                   className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-lg px-8 py-6"
                 >
-                  <CalendarCheck className="w-5 h-5 mr-2" />
+                  <CalendarDays className="w-5 h-5 mr-2" />
                   Reservar Cita
                 </Button>
               </DialogTrigger>
@@ -483,39 +526,61 @@ export default function HomePage() {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="date">Fecha *</Label>
-                      <div className="relative">
-                        <CalendarCheck className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="date"
-                          name="date"
-                          type="date"
-                          min={today}
-                          value={form.date}
-                          onChange={handleFormChange}
-                          className="pl-10 bg-secondary border-border"
-                          required
-                        />
-                      </div>
+                      <Input
+                        id="date"
+                        name="date"
+                        type="date"
+                        min={today}
+                        value={form.date}
+                        onChange={handleFormChange}
+                        className="bg-secondary border-border"
+                        required
+                      />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="time">Hora *</Label>
+                      <Label htmlFor="time">
+                        Hora *{" "}
+                        {form.date && loadingAvailability && (
+                          <span className="text-muted-foreground text-xs">(Verificando...)</span>
+                        )}
+                      </Label>
                       <Select
                         value={form.time}
                         onValueChange={(value) =>
                           setForm((prev) => ({ ...prev, time: value }))
                         }
+                        disabled={!form.date || loadingAvailability}
                       >
                         <SelectTrigger className="bg-secondary border-border">
-                          <SelectValue placeholder="Selecciona la hora" />
+                          <SelectValue
+                            placeholder={
+                              !form.date
+                                ? "Selecciona una fecha primero"
+                                : availableTimeSlots.length === 0
+                                ? "No hay horarios disponibles"
+                                : "Selecciona la hora"
+                            }
+                          />
                         </SelectTrigger>
                         <SelectContent>
-                          {TIME_SLOTS.map((t) => (
-                            <SelectItem key={t} value={t}>
-                              {t}
-                            </SelectItem>
-                          ))}
+                          {availableTimeSlots.length === 0 ? (
+                            <div className="px-3 py-2 text-sm text-muted-foreground text-center">
+                              No hay horarios disponibles para esta fecha
+                            </div>
+                          ) : (
+                            availableTimeSlots.map((t) => (
+                              <SelectItem key={t} value={t}>
+                                {t}
+                              </SelectItem>
+                            ))
+                          )}
                         </SelectContent>
                       </Select>
+                      {form.date && bookedTimes.length > 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          {bookedTimes.length} horario{bookedTimes.length > 1 ? "s" : ""} ya reservado{bookedTimes.length > 1 ? "s" : ""} • {availableTimeSlots.length} disponible{availableTimeSlots.length > 1 ? "s" : ""}
+                        </p>
+                      )}
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="notes">Notas (opcional)</Label>
@@ -532,7 +597,7 @@ export default function HomePage() {
                     <Button
                       type="submit"
                       className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
-                      disabled={submitting}
+                      disabled={submitting || (form.date && availableTimeSlots.length === 0)}
                     >
                       {submitting ? (
                         <>
@@ -541,7 +606,7 @@ export default function HomePage() {
                         </>
                       ) : (
                         <>
-                          <CalendarCheck className="w-4 h-4 mr-2" />
+                          <CalendarDays className="w-4 h-4 mr-2" />
                           Confirmar Cita
                         </>
                       )}
@@ -807,39 +872,61 @@ export default function HomePage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="booking-date">Fecha *</Label>
-                      <div className="relative">
-                        <CalendarCheck className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="booking-date"
-                          name="date"
-                          type="date"
-                          min={today}
-                          value={form.date}
-                          onChange={handleFormChange}
-                          className="pl-10 bg-secondary border-border"
-                          required
-                        />
-                      </div>
+                      <Input
+                        id="booking-date"
+                        name="date"
+                        type="date"
+                        min={today}
+                        value={form.date}
+                        onChange={handleFormChange}
+                        className="bg-secondary border-border"
+                        required
+                      />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="booking-time">Hora *</Label>
+                      <Label htmlFor="booking-time">
+                        Hora *{" "}
+                        {form.date && loadingAvailability && (
+                          <span className="text-muted-foreground text-xs">(Verificando...)</span>
+                        )}
+                      </Label>
                       <Select
                         value={form.time}
                         onValueChange={(value) =>
                           setForm((prev) => ({ ...prev, time: value }))
                         }
+                        disabled={!form.date || loadingAvailability}
                       >
                         <SelectTrigger className="bg-secondary border-border">
-                          <SelectValue placeholder="Selecciona la hora" />
+                          <SelectValue
+                            placeholder={
+                              !form.date
+                                ? "Selecciona una fecha primero"
+                                : availableTimeSlots.length === 0
+                                ? "No hay horarios disponibles"
+                                : "Selecciona la hora"
+                            }
+                          />
                         </SelectTrigger>
                         <SelectContent>
-                          {TIME_SLOTS.map((t) => (
-                            <SelectItem key={t} value={t}>
-                              {t}
-                            </SelectItem>
-                          ))}
+                          {availableTimeSlots.length === 0 ? (
+                            <div className="px-3 py-2 text-sm text-muted-foreground text-center">
+                              No hay horarios disponibles para esta fecha
+                            </div>
+                          ) : (
+                            availableTimeSlots.map((t) => (
+                              <SelectItem key={t} value={t}>
+                                {t}
+                              </SelectItem>
+                            ))
+                          )}
                         </SelectContent>
                       </Select>
+                      {form.date && bookedTimes.length > 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          {bookedTimes.length} horario{bookedTimes.length > 1 ? "s" : ""} ya reservado{bookedTimes.length > 1 ? "s" : ""} • {availableTimeSlots.length} disponible{availableTimeSlots.length > 1 ? "s" : ""}
+                        </p>
+                      )}
                     </div>
                   </div>
 
@@ -862,7 +949,7 @@ export default function HomePage() {
                     <Button
                       type="submit"
                       className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-6"
-                      disabled={submitting}
+                      disabled={submitting || (form.date && availableTimeSlots.length === 0)}
                     >
                       {submitting ? (
                         <>
@@ -871,7 +958,7 @@ export default function HomePage() {
                         </>
                       ) : (
                         <>
-                          <CalendarCheck className="w-4 h-4 mr-2" />
+                          <CalendarDays className="w-4 h-4 mr-2" />
                           Confirmar Cita
                         </>
                       )}
@@ -1018,49 +1105,10 @@ export default function HomePage() {
       <button
         onClick={openWhatsApp}
         className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-[#25D366] hover:bg-[#20bd5a] rounded-full flex items-center justify-center shadow-lg whatsapp-pulse transition-colors"
-        aria-label="Contactar por WhatsApp"
+        aria-label="WhatsApp"
       >
-        <MessageCircle className="w-7 h-7 text-white" />
+        <MessageCircle className="w-6 h-6 text-white" />
       </button>
-
-      {/* ─── WhatsApp Owner Notification (after booking) ───────────── */}
-      {submitted && whatsappNotifyUrl && (
-        <div className="fixed bottom-24 right-6 z-50 max-w-xs">
-          <div className="bg-card border border-[#25D366]/30 rounded-xl p-4 shadow-lg shadow-[#25D366]/10">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-full bg-[#25D366]/20 flex items-center justify-center shrink-0">
-                <MessageCircle className="w-5 h-5 text-[#25D366]" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium mb-1">Notificar al barbero</p>
-                <p className="text-xs text-muted-foreground mb-3">
-                  Abre WhatsApp para enviar los detalles de la cita al barbero automáticamente.
-                </p>
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    className="bg-[#25D366] hover:bg-[#20bd5a] text-white text-xs h-7"
-                    onClick={() => {
-                      window.open(whatsappNotifyUrl, "_blank");
-                    }}
-                  >
-                    <MessageCircle className="w-3 h-3 mr-1" />
-                    Enviar
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="text-xs h-7 text-muted-foreground"
-                    onClick={() => setWhatsappNotifyUrl(null)}
-                  >
-                    Después
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
