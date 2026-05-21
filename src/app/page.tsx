@@ -18,7 +18,6 @@ import {
   Loader2,
   Menu,
   X,
-  ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,7 +38,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { AdminPanel } from "@/components/admin-panel";
 import Image from "next/image";
 
 // ─── Config ──────────────────────────────────────────────────────
@@ -170,7 +168,6 @@ export default function HomePage() {
   const { toast } = useToast();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [bookingOpen, setBookingOpen] = useState(false);
-  const [adminOpen, setAdminOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [whatsappNotifyUrl, setWhatsappNotifyUrl] = useState<string | null>(null);
@@ -287,16 +284,6 @@ export default function HomePage() {
                 <MessageCircle className="w-4 h-4 mr-1" />
                 WhatsApp
               </Button>
-              <Button
-                onClick={() => setAdminOpen(true)}
-                size="sm"
-                variant="ghost"
-                className="text-muted-foreground hover:text-primary"
-                title="Panel de citas (Admin)"
-              >
-                <ShieldCheck className="w-4 h-4 mr-1" />
-                Citas
-              </Button>
             </div>
 
             {/* Mobile Menu Toggle */}
@@ -343,15 +330,6 @@ export default function HomePage() {
               >
                 <MessageCircle className="w-4 h-4 mr-1" />
                 WhatsApp
-              </Button>
-              <Button
-                onClick={() => { setAdminOpen(true); setMobileMenuOpen(false); }}
-                size="sm"
-                variant="outline"
-                className="w-full border-primary/30 text-primary hover:bg-primary/10 mt-1"
-              >
-                <ShieldCheck className="w-4 h-4 mr-1" />
-                Ver Citas (Admin)
               </Button>
             </div>
           </motion.div>
@@ -1045,10 +1023,7 @@ export default function HomePage() {
         <MessageCircle className="w-7 h-7 text-white" />
       </button>
 
-      {/* ─── Admin Panel ────────────────────────────────────────────── */}
-      <AdminPanel open={adminOpen} onOpenChange={setAdminOpen} />
-
-      {/* ─── WhatsApp Owner Notification (auto-opens after booking) ── */}
+      {/* ─── WhatsApp Owner Notification (after booking) ───────────── */}
       {submitted && whatsappNotifyUrl && (
         <div className="fixed bottom-24 right-6 z-50 max-w-xs">
           <div className="bg-card border border-[#25D366]/30 rounded-xl p-4 shadow-lg shadow-[#25D366]/10">

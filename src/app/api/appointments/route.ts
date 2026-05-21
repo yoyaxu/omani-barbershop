@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { verifyAdmin } from '@/lib/auth';
 
 const SERVICE_NAMES: Record<string, string> = {
   corte: 'Corte de Cabello',
@@ -8,6 +9,7 @@ const SERVICE_NAMES: Record<string, string> = {
   combo: 'Combo Corte + Barba',
 };
 
+// POST - Create appointment (public, no auth required)
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -45,8 +47,6 @@ export async function POST(request: NextRequest) {
       `\n\n_Reserva desde la web de Omani Barbershop_`
     );
 
-    // The owner's WhatsApp URL - they'll get this in the response
-    // Update this number with the real barbershop WhatsApp number
     const ownerWhatsAppNumber = process.env.WHATSAPP_OWNER_NUMBER || '18095551234';
     const ownerWhatsAppUrl = `https://wa.me/${ownerWhatsAppNumber}?text=${whatsappMessage}`;
 
@@ -67,8 +67,17 @@ export async function POST(request: NextRequest) {
   }
 }
 
+// GET - List appointments (admin only)
 export async function GET() {
   try {
+    const isAdmin = await verifyAdmin();
+    if (!isAdmin) {
+      return NextResponse.json(
+        { error: 'No autorizado' },
+        { status: 401 }
+      );
+    }
+
     const appointments = await db.appointment.findMany({
       orderBy: { createdAt: 'desc' },
     });
@@ -82,30 +91,49 @@ export async function GET() {
   }
 }
 
-// PATCH - Update appointment status
+// PATCH - Update appointment (admin only)
 export async function PATCH(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { id, status } = body;
-
-    if (!id || !status) {
+    const isAdmin = await verifyAdmin();
+    if (!isAdmin) {
       return NextResponse.json(
-        { error: 'ID y estado son requeridos' },
+        { error: 'No autorizado' },
+        { status: 401 }
+      );
+    }
+
+    const body = await request.json();
+    const { id, name, phone, service, date, time, notes, status } = body;
+
+    if (!id) {
+      return NextResponse.json(
+        { error: 'ID es requerido' },
         { status: 400 }
       );
     }
 
-    const validStatuses = ['pending', 'confirmed', 'completed', 'cancelled'];
-    if (!validStatuses.includes(status)) {
-      return NextResponse.json(
-        { error: 'Estado no válido' },
-        { status: 400 }
-      );
+    // Build update data dynamically
+    const updateData: Record<string, unknown> = {};
+    if (name !== undefined) updateData.name = name;
+    if (phone !== undefined) updateData.phone = phone;
+    if (service !== undefined) updateData.service = service;
+    if (date !== undefined) updateData.date = date;
+    if (time !== undefined) updateData.time = time;
+    if (notes !== undefined) updateData.notes = notes;
+    if (status !== undefined) {
+      const validStatuses = ['pending', 'confirmed', 'completed', 'cancelled'];
+      if (!validStatuses.includes(status)) {
+        return NextResponse.json(
+          { error: 'Estado no válido' },
+          { status: 400 }
+        );
+      }
+      updateData.status = status;
     }
 
     const appointment = await db.appointment.update({
       where: { id },
-      data: { status },
+      data: updateData,
     });
 
     return NextResponse.json({ appointment });
@@ -118,9 +146,17 @@ export async function PATCH(request: NextRequest) {
   }
 }
 
-// DELETE - Delete an appointment
+// DELETE - Delete an appointment (admin only)
 export async function DELETE(request: NextRequest) {
   try {
+    const isAdmin = await verifyAdmin();
+    if (!isAdmin) {
+      return NextResponse.json(
+        { error: 'No autorizado' },
+        { status: 401 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 

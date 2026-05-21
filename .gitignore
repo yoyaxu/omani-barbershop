@@ -30,8 +30,11 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
+# env files
+.env
+.env.local
+.env.*.local
+!.env.example
 
 # vercel
 .vercel
@@ -52,3 +55,33 @@ prompt
 server.log
 # Skills directory
 /skills/
+
+# DB files (will be created on Vercel)
+/db/
+*.db
+*.db-journal
+
+# Z scripts
+.zscripts/
+
+# Search result files
+search*.json
+instagram_data.json
+facebook_data.json
+
+# Worklog
+worklog.md
+
+# Download dir
+/download/
+
+# Examples
+/examples/
+
+# Mini services
+/mini-services/
+
+# Claude/AI config
+.claude
+.z-ai-config
+prompt
