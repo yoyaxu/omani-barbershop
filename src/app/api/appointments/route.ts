@@ -68,9 +68,9 @@ export async function POST(request: NextRequest) {
 }
 
 // GET - List appointments (admin only)
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const isAdmin = await verifyAdmin();
+    const isAdmin = await verifyAdmin(request);
     if (!isAdmin) {
       return NextResponse.json(
         { error: 'No autorizado' },
@@ -94,7 +94,7 @@ export async function GET() {
 // PATCH - Update appointment (admin only)
 export async function PATCH(request: NextRequest) {
   try {
-    const isAdmin = await verifyAdmin();
+    const isAdmin = await verifyAdmin(request);
     if (!isAdmin) {
       return NextResponse.json(
         { error: 'No autorizado' },
@@ -149,7 +149,7 @@ export async function PATCH(request: NextRequest) {
 // DELETE - Delete an appointment (admin only)
 export async function DELETE(request: NextRequest) {
   try {
-    const isAdmin = await verifyAdmin();
+    const isAdmin = await verifyAdmin(request);
     if (!isAdmin) {
       return NextResponse.json(
         { error: 'No autorizado' },

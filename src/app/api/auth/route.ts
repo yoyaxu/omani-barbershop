@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
-import crypto from 'crypto';
+import { createSessionToken, verifyToken } from '@/lib/auth';
 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'omani2024';
-const SESSION_DURATION_HOURS = 24;
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,20 +22,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create session token
-    const token = crypto.randomBytes(32).toString('hex');
-    const expiresAt = new Date();
-    expiresAt.setHours(expiresAt.getHours() + SESSION_DURATION_HOURS);
-
-    await db.adminSession.create({
-      data: {
-        token,
-        expiresAt,
-      },
-    });
+    // Create session token (no database needed)
+    const { token, expiresAt } = createSessionToken();
 
     const response = NextResponse.json(
-      { message: 'Inicio de sesión exitoso', token },
+      { message: 'Inicio de sesión exitoso' },
       { status: 200 }
     );
 
@@ -60,20 +49,16 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    // Check if any valid session exists (for checking auth status)
-    const now = new Date();
-    const session = await db.adminSession.findFirst({
-      where: {
-        expiresAt: {
-          gt: now,
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+    const token = request.cookies.get('admin_token')?.value;
 
-    return NextResponse.json({ authenticated: !!session });
+    if (!token) {
+      return NextResponse.json({ authenticated: false });
+    }
+
+    const isValid = verifyToken(token);
+    return NextResponse.json({ authenticated: isValid });
   } catch (error) {
     console.error('Auth check error:', error);
     return NextResponse.json({ authenticated: false });
@@ -81,34 +66,18 @@ export async function GET() {
 }
 
 export async function DELETE(request: NextRequest) {
-  try {
-    const token = request.cookies.get('admin_token')?.value;
+  const response = NextResponse.json(
+    { message: 'Sesión cerrada' },
+    { status: 200 }
+  );
 
-    if (token) {
-      await db.adminSession.deleteMany({
-        where: { token },
-      });
-    }
+  response.cookies.set('admin_token', '', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    expires: new Date(0),
+    path: '/',
+  });
 
-    const response = NextResponse.json(
-      { message: 'Sesión cerrada' },
-      { status: 200 }
-    );
-
-    response.cookies.set('admin_token', '', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      expires: new Date(0),
-      path: '/',
-    });
-
-    return response;
-  } catch (error) {
-    console.error('Logout error:', error);
-    return NextResponse.json(
-      { error: 'Error al cerrar sesión' },
-      { status: 500 }
-    );
-  }
+  return response;
 }
