@@ -18,6 +18,7 @@ import {
   Loader2,
   Menu,
   X,
+  ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,6 +39,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { AdminPanel } from "@/components/admin-panel";
 import Image from "next/image";
 
 // ─── Config ──────────────────────────────────────────────────────
@@ -168,8 +170,10 @@ export default function HomePage() {
   const { toast } = useToast();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [bookingOpen, setBookingOpen] = useState(false);
+  const [adminOpen, setAdminOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [whatsappNotifyUrl, setWhatsappNotifyUrl] = useState<string | null>(null);
   const [form, setForm] = useState({
     name: "",
     phone: "",
@@ -203,7 +207,12 @@ export default function HomePage() {
         body: JSON.stringify(form),
       });
       if (!res.ok) throw new Error("Error al reservar");
+      const data = await res.json();
       setSubmitted(true);
+      // Store WhatsApp notification URL for the owner
+      if (data.whatsappNotificationUrl) {
+        setWhatsappNotifyUrl(data.whatsappNotificationUrl);
+      }
       toast({
         title: "Cita reservada",
         description: "Tu cita ha sido reservada exitosamente. Te contactaremos para confirmar.",
@@ -278,6 +287,16 @@ export default function HomePage() {
                 <MessageCircle className="w-4 h-4 mr-1" />
                 WhatsApp
               </Button>
+              <Button
+                onClick={() => setAdminOpen(true)}
+                size="sm"
+                variant="ghost"
+                className="text-muted-foreground hover:text-primary"
+                title="Panel de citas (Admin)"
+              >
+                <ShieldCheck className="w-4 h-4 mr-1" />
+                Citas
+              </Button>
             </div>
 
             {/* Mobile Menu Toggle */}
@@ -324,6 +343,15 @@ export default function HomePage() {
               >
                 <MessageCircle className="w-4 h-4 mr-1" />
                 WhatsApp
+              </Button>
+              <Button
+                onClick={() => { setAdminOpen(true); setMobileMenuOpen(false); }}
+                size="sm"
+                variant="outline"
+                className="w-full border-primary/30 text-primary hover:bg-primary/10 mt-1"
+              >
+                <ShieldCheck className="w-4 h-4 mr-1" />
+                Ver Citas (Admin)
               </Button>
             </div>
           </motion.div>
@@ -1016,6 +1044,48 @@ export default function HomePage() {
       >
         <MessageCircle className="w-7 h-7 text-white" />
       </button>
+
+      {/* ─── Admin Panel ────────────────────────────────────────────── */}
+      <AdminPanel open={adminOpen} onOpenChange={setAdminOpen} />
+
+      {/* ─── WhatsApp Owner Notification (auto-opens after booking) ── */}
+      {submitted && whatsappNotifyUrl && (
+        <div className="fixed bottom-24 right-6 z-50 max-w-xs">
+          <div className="bg-card border border-[#25D366]/30 rounded-xl p-4 shadow-lg shadow-[#25D366]/10">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-[#25D366]/20 flex items-center justify-center shrink-0">
+                <MessageCircle className="w-5 h-5 text-[#25D366]" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium mb-1">Notificar al barbero</p>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Abre WhatsApp para enviar los detalles de la cita al barbero automáticamente.
+                </p>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    className="bg-[#25D366] hover:bg-[#20bd5a] text-white text-xs h-7"
+                    onClick={() => {
+                      window.open(whatsappNotifyUrl, "_blank");
+                    }}
+                  >
+                    <MessageCircle className="w-3 h-3 mr-1" />
+                    Enviar
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-xs h-7 text-muted-foreground"
+                    onClick={() => setWhatsappNotifyUrl(null)}
+                  >
+                    Después
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
