@@ -21,6 +21,9 @@ import {
   X,
   Plus,
   CalendarPlus,
+  KeyRound,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -193,9 +196,6 @@ function LoginForm({ onLogin }: { onLogin: () => void }) {
           </Button>
         </form>
 
-        <p className="text-center text-xs text-muted-foreground mt-4">
-          Contraseña por defecto: <code className="text-primary">omani2024</code>
-        </p>
       </div>
     </div>
   );
@@ -528,6 +528,13 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   const [filter, setFilter] = useState<string>("all");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [changePwForm, setChangePwForm] = useState({ current: "", newPw: "", confirm: "" });
+  const [changePwLoading, setChangePwLoading] = useState(false);
+  const [changePwError, setChangePwError] = useState("");
+  const [changePwSuccess, setChangePwSuccess] = useState(false);
+  const [showCurrentPw, setShowCurrentPw] = useState(false);
+  const [showNewPw, setShowNewPw] = useState(false);
 
   const fetchAppointments = useCallback(async () => {
     setLoading(true);
@@ -630,6 +637,53 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     window.open(`https://wa.me/${cleanPhone}?text=${msg}`, "_blank");
   };
 
+  const handleChangePassword = async () => {
+    setChangePwError("");
+    setChangePwSuccess(false);
+
+    if (!changePwForm.current || !changePwForm.newPw || !changePwForm.confirm) {
+      setChangePwError("Todos los campos son requeridos");
+      return;
+    }
+    if (changePwForm.newPw !== changePwForm.confirm) {
+      setChangePwError("Las contraseñas nuevas no coinciden");
+      return;
+    }
+    if (changePwForm.newPw.length < 4) {
+      setChangePwError("La nueva contraseña debe tener al menos 4 caracteres");
+      return;
+    }
+
+    setChangePwLoading(true);
+    try {
+      const res = await fetch("/api/auth/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          currentPassword: changePwForm.current,
+          newPassword: changePwForm.newPw,
+        }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setChangePwError(data.error || "Error al cambiar la contraseña");
+        return;
+      }
+
+      setChangePwSuccess(true);
+      setChangePwForm({ current: "", newPw: "", confirm: "" });
+      setTimeout(() => {
+        setShowChangePassword(false);
+        setChangePwSuccess(false);
+      }, 2000);
+    } catch {
+      setChangePwError("Error de conexión");
+    } finally {
+      setChangePwLoading(false);
+    }
+  };
+
   const handleLogout = async () => {
     try {
       await fetch("/api/auth", { method: "DELETE" });
@@ -705,6 +759,15 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
             <Button
               variant="ghost"
               size="sm"
+              className="text-muted-foreground hover:text-primary"
+              onClick={() => setShowChangePassword(!showChangePassword)}
+            >
+              <KeyRound className="w-4 h-4 mr-1" />
+              Contraseña
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
               className="text-muted-foreground hover:text-red-400"
               onClick={handleLogout}
             >
@@ -717,6 +780,109 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
 
       {/* Content */}
       <div className="max-w-5xl mx-auto px-4 py-6">
+        {/* Change Password Form */}
+        {showChangePassword && (
+          <div className="bg-card border border-primary/30 rounded-xl p-5 mb-6 space-y-4">
+            <h3 className="text-base font-bold text-primary flex items-center gap-2">
+              <KeyRound className="w-4 h-4" />
+              Cambiar Contraseña
+            </h3>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Contraseña actual</Label>
+                <div className="relative">
+                  <Input
+                    type={showCurrentPw ? "text" : "password"}
+                    value={changePwForm.current}
+                    onChange={(e) => setChangePwForm((p) => ({ ...p, current: e.target.value }))}
+                    className="h-9 text-sm bg-secondary border-border pr-9"
+                    placeholder="Actual"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCurrentPw(!showCurrentPw)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showCurrentPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Nueva contraseña</Label>
+                <div className="relative">
+                  <Input
+                    type={showNewPw ? "text" : "password"}
+                    value={changePwForm.newPw}
+                    onChange={(e) => setChangePwForm((p) => ({ ...p, newPw: e.target.value }))}
+                    className="h-9 text-sm bg-secondary border-border pr-9"
+                    placeholder="Nueva"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPw(!showNewPw)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showNewPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Confirmar nueva</Label>
+                <Input
+                  type="password"
+                  value={changePwForm.confirm}
+                  onChange={(e) => setChangePwForm((p) => ({ ...p, confirm: e.target.value }))}
+                  className="h-9 text-sm bg-secondary border-border"
+                  placeholder="Confirmar"
+                />
+              </div>
+            </div>
+
+            {changePwError && (
+              <p className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
+                {changePwError}
+              </p>
+            )}
+
+            {changePwSuccess && (
+              <p className="text-sm text-green-400 bg-green-500/10 border border-green-500/20 rounded-lg px-3 py-2">
+                Contraseña actualizada exitosamente
+              </p>
+            )}
+
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                onClick={handleChangePassword}
+                disabled={changePwLoading}
+              >
+                {changePwLoading ? (
+                  <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
+                ) : (
+                  <KeyRound className="w-3.5 h-3.5 mr-1" />
+                )}
+                Guardar Contraseña
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-muted-foreground"
+                onClick={() => {
+                  setShowChangePassword(false);
+                  setChangePwError("");
+                  setChangePwSuccess(false);
+                  setChangePwForm({ current: "", newPw: "", confirm: "" });
+                }}
+              >
+                <X className="w-3.5 h-3.5 mr-1" />
+                Cancelar
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
           {[

@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
       `\n\n_Reserva desde la web de Omani Barbershop_`
     );
 
-    const ownerWhatsAppNumber = process.env.WHATSAPP_OWNER_NUMBER || '18095551234';
+    const ownerWhatsAppNumber = process.env.WHATSAPP_OWNER_NUMBER || '8293196108';
     const ownerWhatsAppUrl = `https://wa.me/${ownerWhatsAppNumber}?text=${whatsappMessage}`;
 
     return NextResponse.json(

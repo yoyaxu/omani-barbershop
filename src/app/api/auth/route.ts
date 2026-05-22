@@ -1,7 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSessionToken, verifyToken } from '@/lib/auth';
+import crypto from 'crypto';
 
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'omani2024';
+const AUTH_SECRET = process.env.AUTH_SECRET || 'omani-barbershop-secret-key-2024';
+
+function getValidPasswords(request: NextRequest): string[] {
+  const passwords = [process.env.ADMIN_PASSWORD || 'omani2024'];
+
+  // Also check if a custom password was set via cookie
+  const customPwHash = request.cookies.get('admin_custom_pw')?.value;
+  // We can't reverse the hash, so we also store the custom password encrypted
+  // Actually, let's use a different approach - store the custom password in a separate cookie
+  const customPw = request.cookies.get('admin_custom_pw_plain')?.value;
+  if (customPw) {
+    passwords.push(customPw);
+  }
+
+  return passwords;
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,7 +31,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (password !== ADMIN_PASSWORD) {
+    // Check against all valid passwords (env + custom)
+    const validPasswords = getValidPasswords(request);
+    if (!validPasswords.includes(password)) {
       return NextResponse.json(
         { error: 'Contraseña incorrecta' },
         { status: 401 }

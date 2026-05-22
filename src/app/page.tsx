@@ -42,7 +42,7 @@ import { DatePickerField } from "@/components/DatePickerField";
 import Image from "next/image";
 
 // ─── Config ──────────────────────────────────────────────────────
-const WHATSAPP_NUMBER = "18095551234"; // Update with real number
+const WHATSAPP_NUMBER = "8293196108";
 const INSTAGRAM_URL = "https://www.instagram.com/omani_barbershop/";
 const FACEBOOK_URL =
   "https://www.facebook.com/profile.php?id=100054503348727";
