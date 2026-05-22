@@ -162,3 +162,26 @@ html {
   border-color: oklch(0.78 0.14 75);
   transform: translateY(-4px);
 }
+
+/* Date picker styling for dark theme */
+.date-picker-styled {
+  color-scheme: dark;
+}
+
+/* Hide the browser's native calendar icon - we use our own */
+.date-picker-styled::-webkit-calendar-picker-indicator {
+  opacity: 0;
+  position: absolute;
+  right: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+
+/* Make the date input text transparent so our overlay shows instead */
+.date-picker-styled:not(:focus) {
+  color: transparent;
+}
+.date-picker-styled:focus {
+  color: transparent;
+}

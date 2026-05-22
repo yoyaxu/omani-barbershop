@@ -1,6 +1,5 @@
 "use client";
 
-import { useRef } from "react";
 import { CalendarDays } from "lucide-react";
 
 interface DatePickerFieldProps {
@@ -22,8 +21,6 @@ export function DatePickerField({
   id,
   required,
 }: DatePickerFieldProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
-
   const formatDisplayDate = (dateStr: string) => {
     if (!dateStr) return "";
     try {
@@ -41,31 +38,34 @@ export function DatePickerField({
 
   return (
     <div className={`relative ${className}`}>
-      {/* Hidden native date input */}
+      {/* Calendar icon on the left */}
+      <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none z-10" />
+
+      {/* Native date input styled to match the theme */}
       <input
-        ref={inputRef}
         id={id}
         type="date"
         value={value}
         min={min}
         onChange={(e) => onChange(e.target.value)}
         required={required}
-        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-        tabIndex={-1}
+        className="w-full bg-secondary border border-border rounded-md pl-10 pr-3 py-2 text-sm text-foreground cursor-pointer hover:border-primary/50 transition-colors appearance-none date-picker-styled"
+        placeholder={placeholder}
       />
 
-      {/* Custom styled button that looks like an input */}
-      <div
-        onClick={() => inputRef.current?.showPicker?.()}
-        className="w-full flex items-center justify-between bg-secondary border border-border rounded-md px-3 py-2 cursor-pointer hover:border-primary/50 transition-colors"
-      >
-        <span
-          className={`text-sm ${value ? "text-foreground" : "text-muted-foreground"}`}
-        >
-          {value ? formatDisplayDate(value) : placeholder}
-        </span>
-        <CalendarDays className="w-4 h-4 text-primary shrink-0 ml-2" />
-      </div>
+      {/* Overlay label when no date selected */}
+      {!value && (
+        <div className="absolute left-10 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground text-sm">
+          {placeholder}
+        </div>
+      )}
+
+      {/* Formatted date display overlay - hides the raw date format */}
+      {value && (
+        <div className="absolute left-10 top-1/2 -translate-y-1/2 pointer-events-none text-foreground text-sm">
+          {formatDisplayDate(value)}
+        </div>
+      )}
     </div>
   );
 }

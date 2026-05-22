@@ -46,6 +46,8 @@ const WHATSAPP_NUMBER = "18095551234"; // Update with real number
 const INSTAGRAM_URL = "https://www.instagram.com/omani_barbershop/";
 const FACEBOOK_URL =
   "https://www.facebook.com/profile.php?id=100054503348727";
+const GOOGLE_MAPS_URL =
+  "https://www.google.com/maps/place/Omani+Barbershop/@18.5203355,-69.9137351,21z/data=!4m6!3m5!1s0x8eaf894807422325:0xc4f942c3b4618c20!8m2!3d18.5203355!4d-69.9135742!16s%2Fg%2F11yz0fc7xs";
 const BARBERSHOP_NAME = "Omani Barbershop";
 
 const SERVICES = [
@@ -1006,15 +1008,21 @@ export default function HomePage() {
               </button>
 
               {/* Location */}
-              <div className="bg-card border border-border rounded-xl p-6">
-                <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center mb-4">
+              <button
+                onClick={() => window.open(GOOGLE_MAPS_URL, "_blank")}
+                className="bg-card border border-border rounded-xl p-6 text-left hover:border-primary transition-colors group w-full"
+              >
+                <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center mb-4 group-hover:bg-primary/30 transition-colors">
                   <MapPin className="w-6 h-6 text-primary" />
                 </div>
                 <h3 className="font-bold text-lg mb-1">Ubicación</h3>
                 <p className="text-muted-foreground text-sm">
-                  República Dominicana
+                  Santo Domingo Este, República Dominicana
                 </p>
-              </div>
+                <p className="text-primary text-xs mt-2">
+                  Ver en Google Maps →
+                </p>
+              </button>
 
               {/* Hours */}
               <div className="bg-card border border-border rounded-xl p-6">
