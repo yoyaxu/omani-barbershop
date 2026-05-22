@@ -10,8 +10,10 @@ export function middleware(request: NextRequest) {
   // omani.barberdo.com → "omani"
   // www.barberdo.com → no subdomain (www is ignored)
   // barberdo.com → no subdomain
+  // omani-barbershop.vercel.app → NO subdomain (Vercel default domain)
 
   const isLocalhost = hostname.includes('localhost')
+  const isVercelDefaultDomain = hostname.endsWith('.vercel.app')
   const domainParts = hostname.split('.')
 
   let subdomain: string | null = null
@@ -22,6 +24,11 @@ export function middleware(request: NextRequest) {
     if (domainParts.length >= 2 && domainParts[0] !== 'www') {
       subdomain = domainParts[0]
     }
+  } else if (isVercelDefaultDomain) {
+    // omani-barbershop.vercel.app → NO subdomain
+    // These are Vercel's default deployment domains, not custom subdomains
+    // Subdomain routing only works on custom domains like *.barberdo.com
+    subdomain = null
   } else {
     // barberdo.com → domainParts = ['barberdo', 'com']
     // omani.barberdo.com → domainParts = ['omani', 'barberdo', 'com']
