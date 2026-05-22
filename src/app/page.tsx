@@ -38,6 +38,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { DatePickerField } from "@/components/DatePickerField";
 import Image from "next/image";
 
 // ─── Config ──────────────────────────────────────────────────────
@@ -526,14 +527,12 @@ export default function HomePage() {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="date">Fecha *</Label>
-                      <Input
+                      <DatePickerField
                         id="date"
-                        name="date"
-                        type="date"
-                        min={today}
                         value={form.date}
-                        onChange={handleFormChange}
-                        className="bg-secondary border-border"
+                        onChange={(v) => setForm((prev) => ({ ...prev, date: v }))}
+                        min={today}
+                        placeholder="Seleccionar fecha"
                         required
                       />
                     </div>
@@ -872,14 +871,12 @@ export default function HomePage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="booking-date">Fecha *</Label>
-                      <Input
+                      <DatePickerField
                         id="booking-date"
-                        name="date"
-                        type="date"
-                        min={today}
                         value={form.date}
-                        onChange={handleFormChange}
-                        className="bg-secondary border-border"
+                        onChange={(v) => setForm((prev) => ({ ...prev, date: v }))}
+                        min={today}
+                        placeholder="Seleccionar fecha"
                         required
                       />
                     </div>

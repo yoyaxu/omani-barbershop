@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/select";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { DatePickerField } from "@/components/DatePickerField";
 
 // ─── Types ───────────────────────────────────────────────────────
 interface Appointment {
@@ -298,14 +299,11 @@ function CreateAppointmentForm({
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
           <Label className="text-xs">Fecha *</Label>
-          <Input
-            type="date"
-            min={today}
+          <DatePickerField
             value={form.date}
-            onChange={(e) => {
-              setForm((p) => ({ ...p, date: e.target.value, time: "" }));
-            }}
-            className="h-9 text-sm bg-secondary border-border"
+            onChange={(v) => setForm((p) => ({ ...p, date: v, time: "" }))}
+            min={today}
+            placeholder="Seleccionar"
           />
         </div>
         <div className="space-y-1.5">
@@ -461,11 +459,10 @@ function EditAppointmentForm({
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
           <Label className="text-xs">Fecha</Label>
-          <Input
-            type="date"
+          <DatePickerField
             value={form.date}
-            onChange={(e) => setForm((p) => ({ ...p, date: e.target.value }))}
-            className="h-8 text-sm bg-secondary border-border"
+            onChange={(v) => setForm((p) => ({ ...p, date: v }))}
+            placeholder="Seleccionar"
           />
         </div>
         <div className="space-y-1">
