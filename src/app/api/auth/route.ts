@@ -1,52 +1,57 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createSessionToken, verifyToken } from '@/lib/auth';
-import crypto from 'crypto';
+import { NextRequest, NextResponse } from 'next/server'
+import { verifyAdmin, createSessionToken, verifyPassword } from '@/lib/auth'
+import { db } from '@/lib/db'
 
-const AUTH_SECRET = process.env.AUTH_SECRET || 'omani-barbershop-secret-key-2024';
-
-function getValidPasswords(request: NextRequest): string[] {
-  const passwords = [process.env.ADMIN_PASSWORD || 'omani2024'];
-
-  // Also check if a custom password was set via cookie
-  const customPwHash = request.cookies.get('admin_custom_pw')?.value;
-  // We can't reverse the hash, so we also store the custom password encrypted
-  // Actually, let's use a different approach - store the custom password in a separate cookie
-  const customPw = request.cookies.get('admin_custom_pw_plain')?.value;
-  if (customPw) {
-    passwords.push(customPw);
-  }
-
-  return passwords;
-}
-
+// POST - Login with email/password
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { password } = body;
+    const body = await request.json()
+    const { email, password } = body
 
-    if (!password) {
+    if (!email || !password) {
       return NextResponse.json(
-        { error: 'Contraseña requerida' },
+        { error: 'Email y contraseña son requeridos' },
         { status: 400 }
-      );
+      )
     }
 
-    // Check against all valid passwords (env + custom)
-    const validPasswords = getValidPasswords(request);
-    if (!validPasswords.includes(password)) {
+    // Find user by email
+    const user = await db.user.findUnique({
+      where: { email },
+    })
+
+    if (!user) {
       return NextResponse.json(
-        { error: 'Contraseña incorrecta' },
+        { error: 'Credenciales incorrectas' },
         { status: 401 }
-      );
+      )
     }
 
-    // Create session token (no database needed)
-    const { token, expiresAt } = createSessionToken();
+    // Verify password
+    const isValid = await verifyPassword(password, user.passwordHash)
+    if (!isValid) {
+      return NextResponse.json(
+        { error: 'Credenciales incorrectas' },
+        { status: 401 }
+      )
+    }
+
+    // Create session token
+    const { token, expiresAt } = createSessionToken(user.id, user.role, user.shopId || undefined)
 
     const response = NextResponse.json(
-      { message: 'Inicio de sesión exitoso' },
+      {
+        message: 'Inicio de sesión exitoso',
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          shopId: user.shopId,
+        },
+      },
       { status: 200 }
-    );
+    )
 
     // Set HTTP-only cookie
     response.cookies.set('admin_token', token, {
@@ -55,39 +60,46 @@ export async function POST(request: NextRequest) {
       sameSite: 'lax',
       expires: expiresAt,
       path: '/',
-    });
+    })
 
-    return response;
+    return response
   } catch (error) {
-    console.error('Login error:', error);
-    return NextResponse.json(
-      { error: 'Error al iniciar sesión' },
-      { status: 500 }
-    );
+    console.error('Login error:', error)
+    return NextResponse.json({ error: 'Error al iniciar sesión' }, { status: 500 })
   }
 }
 
+// GET - Check if authenticated
 export async function GET(request: NextRequest) {
   try {
-    const token = request.cookies.get('admin_token')?.value;
+    const auth = await verifyAdmin(request)
+    if (auth.authenticated) {
+      // Get user details
+      const user = auth.userId
+        ? await db.user.findUnique({
+            where: { id: auth.userId },
+            select: { id: true, name: true, email: true, role: true, shopId: true },
+          })
+        : null
 
-    if (!token) {
-      return NextResponse.json({ authenticated: false });
+      return NextResponse.json({
+        authenticated: true,
+        user,
+      })
     }
-
-    const isValid = verifyToken(token);
-    return NextResponse.json({ authenticated: isValid });
+    return NextResponse.json({ authenticated: false, user: null })
   } catch (error) {
-    console.error('Auth check error:', error);
-    return NextResponse.json({ authenticated: false });
+    console.error('Auth check error:', error)
+    return NextResponse.json({ authenticated: false, user: null })
   }
 }
 
-export async function DELETE(request: NextRequest) {
+// DELETE - Logout
+export async function DELETE() {
   const response = NextResponse.json(
     { message: 'Sesión cerrada' },
     { status: 200 }
-  );
+  )
 
   response.cookies.set('admin_token', '', {
     httpOnly: true,
@@ -95,7 +107,7 @@ export async function DELETE(request: NextRequest) {
     sameSite: 'lax',
     expires: new Date(0),
     path: '/',
-  });
+  })
 
-  return response;
+  return response
 }

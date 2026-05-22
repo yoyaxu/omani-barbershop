@@ -1,23 +1,26 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { NextRequest, NextResponse } from 'next/server'
+import { db } from '@/lib/db'
+import { getShopIdFromRequest } from '@/lib/auth'
 
-// GET - Get available time slots for a specific date
-// Public endpoint - no auth required
+// GET - Get available time slots for a specific date (public, shop-scoped)
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const date = searchParams.get('date');
+    const { searchParams } = new URL(request.url)
+    const date = searchParams.get('date')
 
     if (!date) {
-      return NextResponse.json(
-        { error: 'Fecha requerida' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Fecha requerida' }, { status: 400 })
     }
 
-    // Find all booked appointments for this date that are not cancelled
+    const shopId = searchParams.get('shopId') || await getShopIdFromRequest(request)
+    if (!shopId) {
+      return NextResponse.json({ error: 'Barbería no especificada' }, { status: 400 })
+    }
+
+    // Find all booked appointments for this date and shop that are not cancelled
     const bookedAppointments = await db.appointment.findMany({
       where: {
+        shopId,
         date,
         status: {
           in: ['pending', 'confirmed'],
@@ -26,16 +29,13 @@ export async function GET(request: NextRequest) {
       select: {
         time: true,
       },
-    });
+    })
 
-    const bookedTimes = bookedAppointments.map((a) => a.time);
+    const bookedSlots = bookedAppointments.map((a) => a.time)
 
-    return NextResponse.json({ bookedTimes });
+    return NextResponse.json({ bookedSlots })
   } catch (error) {
-    console.error('Error fetching availability:', error);
-    return NextResponse.json(
-      { error: 'Error al verificar disponibilidad' },
-      { status: 500 }
-    );
+    console.error('Error fetching availability:', error)
+    return NextResponse.json({ error: 'Error al verificar disponibilidad' }, { status: 500 })
   }
 }

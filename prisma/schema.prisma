@@ -3,19 +3,95 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+model Shop {
+  id              String   @id @default(cuid())
+  name            String
+  slug            String   @unique
+  description     String?
+  whatsappNumber  String   @default("")
+  instagram       String?
+  facebook        String?
+  address         String?
+  googleMapsUrl   String?
+  latitude        Float?
+  longitude       Float?
+  openingTime     String   @default("9:00 AM")
+  closingTime     String   @default("7:00 PM")
+  themeColor      String   @default("#D4A853")
+  logoUrl         String?
+  heroImageUrl    String?
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  ownerId       String
+  owner         User          @relation("ShopOwner", fields: [ownerId], references: [id])
+  services      Service[]
+  appointments  Appointment[]
+  galleryImages GalleryImage[]
+  users         User[]        @relation("ShopMembers")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         String   @default("shop_admin")
+  shopId       String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  ownedShops Shop[] @relation("ShopOwner")
+  shop       Shop?  @relation("ShopMembers", fields: [shopId], references: [id])
+}
+
+model Service {
+  id          String  @id @default(cuid())
+  shopId      String
+  name        String
+  price       Int
+  duration    Int     @default(30)
+  description String?
+  imageUrl    String?
+  order       Int     @default(0)
+  isActive    Boolean @default(true)
+  shop          Shop          @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  appointments  Appointment[]
+
+  @@index([shopId])
 }
 
 model Appointment {
   id        String   @id @default(cuid())
+  shopId    String
   name      String
   phone     String
-  service   String
+  serviceId String
   date      String
   time      String
   notes     String?
   status    String   @default("pending")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  shop      Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  service   Service  @relation(fields: [serviceId], references: [id])
+
+  @@index([shopId])
+  @@index([shopId, date])
+}
+
+model GalleryImage {
+  id      String @id @default(cuid())
+  shopId  String
+  url     String
+  caption String?
+  order   Int    @default(0)
+  shop    Shop   @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@index([shopId])
 }

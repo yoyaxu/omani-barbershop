@@ -1,0 +1,1 @@
+/tmp/pg_extract/bin/postgres "-D" "/home/z/my-project/.pgdata"
