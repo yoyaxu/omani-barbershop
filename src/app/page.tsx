@@ -6,7 +6,8 @@ import {
   Scissors, Phone, Mail, MapPin, Clock, Instagram, Facebook,
   ChevronRight, ChevronLeft, Calendar, Check, X, Menu,
   Shield, Users, DollarSign, TrendingUp, AlertCircle,
-  Trash2, Eye, UserPlus, ChevronDown, Star, Sparkles
+  Trash2, Eye, UserPlus, ChevronDown, Star, Sparkles,
+  MessageCircle, RotateCcw
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -1324,12 +1325,26 @@ function AdminView({ setView }: { setView: (v: View) => void }) {
         body: JSON.stringify({ status }),
       })
       if (res.ok) {
-        toast.success(`Cita ${status === 'confirmed' ? 'confirmada' : status === 'completed' ? 'completada' : 'cancelada'}`)
+        const statusLabels: Record<string, string> = {
+          confirmed: 'confirmada',
+          completed: 'completada',
+          cancelled: 'cancelada',
+          pending: 'reactivada',
+        }
+        toast.success(`Cita ${statusLabels[status] || 'actualizada'}`)
         fetchAppointments()
       }
     } catch {
       toast.error('Error al actualizar la cita')
     }
+  }
+
+  const sendWhatsApp = (appointment: Appointment) => {
+    const servicesList = appointment.services.map((s) => s.service.name).join(', ')
+    const message = `¡Hola ${appointment.customerName}! 👋\n\nTe confirmamos tu cita en *Aflow Barbershop*:\n\n📅 *Fecha:* ${formatDate(appointment.date)}\n🕐 *Hora:* ${formatTime(appointment.time)}\n✂️ *Servicios:* ${servicesList}\n💰 *Total:* ${formatPrice(appointment.totalPrice)}\n👥 *Personas:* ${appointment.numberOfPeople}\n\n¡Te esperamos! 🙏\n\n📍 Calle Marcos del Rosario, esq. C. José Martí, Santo Domingo Norte`
+    const phone = appointment.customerPhone.replace(/\D/g, '')
+    const waNumber = phone.startsWith('1') ? phone : `1${phone}`
+    window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(message)}`, '_blank')
   }
 
   const deleteAppointment = async (id: string) => {
@@ -1710,7 +1725,17 @@ function AdminView({ setView }: { setView: (v: View) => void }) {
 
                                   {/* Actions */}
                                   <div className="flex flex-wrap gap-2">
-                                    {selectedAppointment.status === 'pending' && (
+                                    {selectedAppointment.status === 'cancelled' && (
+                                      <Button
+                                        onClick={() => updateStatus(selectedAppointment.id, 'pending')}
+                                        size="sm"
+                                        className="bg-[#d4a039] hover:bg-[#c49030] text-[#0a0a0a]"
+                                      >
+                                        <RotateCcw className="w-4 h-4 mr-1" />
+                                        Reactivar
+                                      </Button>
+                                    )}
+                                    {(selectedAppointment.status === 'pending' || selectedAppointment.status === 'cancelled') && (
                                       <Button
                                         onClick={() => updateStatus(selectedAppointment.id, 'confirmed')}
                                         size="sm"
@@ -1720,7 +1745,7 @@ function AdminView({ setView }: { setView: (v: View) => void }) {
                                         Confirmar
                                       </Button>
                                     )}
-                                    {(selectedAppointment.status === 'pending' || selectedAppointment.status === 'confirmed') && (
+                                    {(selectedAppointment.status === 'pending' || selectedAppointment.status === 'confirmed' || selectedAppointment.status === 'cancelled') && (
                                       <Button
                                         onClick={() => updateStatus(selectedAppointment.id, 'completed')}
                                         size="sm"
@@ -1742,6 +1767,14 @@ function AdminView({ setView }: { setView: (v: View) => void }) {
                                       </Button>
                                     )}
                                     <Button
+                                      onClick={() => sendWhatsApp(selectedAppointment)}
+                                      size="sm"
+                                      className="bg-green-500 hover:bg-green-600 text-white"
+                                    >
+                                      <MessageCircle className="w-4 h-4 mr-1" />
+                                      WhatsApp
+                                    </Button>
+                                    <Button
                                       onClick={() => deleteAppointment(selectedAppointment.id)}
                                       size="sm"
                                       variant="outline"
@@ -1757,6 +1790,17 @@ function AdminView({ setView }: { setView: (v: View) => void }) {
                           </Dialog>
 
                           {/* Quick actions */}
+                          {apt.status === 'cancelled' && (
+                            <Button
+                              onClick={() => updateStatus(apt.id, 'pending')}
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8 text-[#d4a039] hover:text-[#e8b94a] hover:bg-[#d4a039]/10"
+                              title="Reactivar"
+                            >
+                              <RotateCcw className="w-4 h-4" />
+                            </Button>
+                          )}
                           {apt.status === 'pending' && (
                             <Button
                               onClick={() => updateStatus(apt.id, 'confirmed')}
@@ -1779,6 +1823,15 @@ function AdminView({ setView }: { setView: (v: View) => void }) {
                               <X className="w-4 h-4" />
                             </Button>
                           )}
+                          <Button
+                            onClick={() => sendWhatsApp(apt)}
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8 text-green-500 hover:text-green-400 hover:bg-green-500/10"
+                            title="WhatsApp"
+                          >
+                            <MessageCircle className="w-4 h-4" />
+                          </Button>
                         </div>
                       </div>
                     </div>
