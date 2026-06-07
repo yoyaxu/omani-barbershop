@@ -7,7 +7,7 @@ import {
   ChevronRight, ChevronLeft, Calendar, Check, X, Menu,
   Shield, Users, DollarSign, TrendingUp, AlertCircle,
   Trash2, Eye, UserPlus, ChevronDown, Star, Sparkles,
-  MessageCircle, RotateCcw
+  MessageCircle, RotateCcw, Sun, Moon
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -26,86 +26,109 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { toast } from 'sonner'
 import { es } from 'date-fns/locale/es'
 
-// Theme presets
-const themePresets = [
-  { name: 'Dorado', primary: '#d4a039', primaryLight: '#e8b94a', primaryDark: '#b8882e' },
-  { name: 'Rojo', primary: '#dc2626', primaryLight: '#ef4444', primaryDark: '#b91c1c' },
-  { name: 'Azul', primary: '#2563eb', primaryLight: '#3b82f6', primaryDark: '#1d4ed8' },
-  { name: 'Verde', primary: '#16a34a', primaryLight: '#22c55e', primaryDark: '#15803d' },
-  { name: 'Púrpura', primary: '#9333ea', primaryLight: '#a855f7', primaryDark: '#7e22ce' },
-  { name: 'Rosa', primary: '#ec4899', primaryLight: '#f472b6', primaryDark: '#db2777' },
-  { name: 'Naranja', primary: '#ea580c', primaryLight: '#f97316', primaryDark: '#c2410c' },
-  { name: 'Cian', primary: '#0891b2', primaryLight: '#06b6d4', primaryDark: '#0e7490' },
-]
+// Theme mode (dark/light)
+type ThemeMode = 'dark' | 'light'
 
-function useThemeColor() {
-  const [theme, setThemeState] = useState(() => {
+function useThemeMode() {
+  const [mode, setModeState] = useState<ThemeMode>(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('omani-theme')
-      if (saved) return JSON.parse(saved)
+      const saved = localStorage.getItem('omani-mode')
+      if (saved === 'light' || saved === 'dark') return saved
     }
-    return themePresets[0]
+    return 'dark'
   })
 
-  const setTheme = (preset: typeof themePresets[0]) => {
-    setThemeState(preset)
-    localStorage.setItem('omani-theme', JSON.stringify(preset))
-    applyThemeColors(preset)
-  }
-
-  const applyThemeColors = (preset: typeof themePresets[0]) => {
+  const applyMode = (m: ThemeMode) => {
     const root = document.documentElement
-    root.setAttribute('data-theme-active', '')
-    root.style.setProperty('--theme-primary', preset.primary)
-    root.style.setProperty('--theme-primary-light', preset.primaryLight)
-    root.style.setProperty('--theme-primary-dark', preset.primaryDark)
-    root.style.setProperty('--primary', preset.primary)
-    root.style.setProperty('--ring', preset.primary)
+    root.setAttribute('data-mode', m)
 
-    let styleEl = document.getElementById('omani-theme-override') as HTMLStyleElement | null
+    let styleEl = document.getElementById('omani-mode-override') as HTMLStyleElement | null
     if (!styleEl) {
       styleEl = document.createElement('style')
-      styleEl.id = 'omani-theme-override'
+      styleEl.id = 'omani-mode-override'
       document.head.appendChild(styleEl)
     }
-    const p = preset.primary
-    const pl = preset.primaryLight
-    const pd = preset.primaryDark
-    const r = parseInt(p.slice(1, 3), 16)
-    const g = parseInt(p.slice(3, 5), 16)
-    const b = parseInt(p.slice(5, 7), 16)
 
-    styleEl.textContent = `
-      [data-theme-active] [class*="bg-[#d4a039]"] { background-color: ${p} !important; }
-      [data-theme-active] [class*="bg-[#d4a039]/10"] { background-color: rgba(${r},${g},${b},0.1) !important; }
-      [data-theme-active] [class*="bg-[#d4a039]/20"] { background-color: rgba(${r},${g},${b},0.2) !important; }
-      [data-theme-active] [class*="text-[#d4a039]"] { color: ${p} !important; }
-      [data-theme-active] [class*="border-[#d4a039]"] { border-color: ${p} !important; }
-      [data-theme-active] [class*="border-[#d4a039]/50"] { border-color: rgba(${r},${g},${b},0.5) !important; }
-      [data-theme-active] [class*="border-[#d4a039]/30"] { border-color: rgba(${r},${g},${b},0.3) !important; }
-      [data-theme-active] [class*="from-[#d4a039]"] { --tw-gradient-from: ${p} !important; }
-      [data-theme-active] [class*="to-[#b8882e]"] { --tw-gradient-to: ${pd} !important; }
-      [data-theme-active] [class*="hover:from-[#e8b94a]"] { --tw-gradient-from: ${pl} !important; }
-      [data-theme-active] [class*="hover:to-[#d4a039]"] { --tw-gradient-to: ${p} !important; }
-      [data-theme-active] [class*="shadow-[#d4a039]"] { --tw-shadow-color: rgba(${r},${g},${b},0.2) !important; }
-      [data-theme-active] [class*="hover:border-[#d4a039]"]:hover { border-color: ${p} !important; }
-      [data-theme-active] [class*="hover:text-[#d4a039]"]:hover { color: ${p} !important; }
-      [data-theme-active] [class*="focus:border-[#d4a039]"]:focus { border-color: ${p} !important; }
-      [data-theme-active] .bg-\\[\\#d4a039\\] { background-color: ${p} !important; }
-      [data-theme-active] .text-\\[\\#d4a039\\] { color: ${p} !important; }
-      [data-theme-active] .from-\\[\\#d4a039\\] { --tw-gradient-from: ${p} !important; }
-      [data-theme-active] .to-\\[\\#b8882e\\] { --tw-gradient-to: ${pd} !important; }
-      [data-theme-active] .hover\\:from-\\[\\#e8b94a\\]\\:hover { --tw-gradient-from: ${pl} !important; }
-      [data-theme-active] .hover\\:to-\\[\\#d4a039\\]\\:hover { --tw-gradient-to: ${p} !important; }
-      [data-theme-active] [class*="fill-[#d4a039]"] { fill: ${p} !important; }
-    `
+    if (m === 'light') {
+      styleEl.textContent = `
+        /* Light mode overrides */
+        [data-mode="light"] body { background-color: #f5f5f0 !important; }
+
+        /* Main backgrounds */
+        [data-mode="light"] [class*="bg-[#0a0a0a]"] { background-color: #f5f5f0 !important; }
+        [data-mode="light"] [class*="bg-[#0f0f0f]"] { background-color: #eeeee8 !important; }
+        [data-mode="light"] [class*="bg-[#1f1f1f]"] { background-color: #ffffff !important; }
+
+        /* Borders */
+        [data-mode="light"] [class*="border-[#2a2a2a]"] { border-color: #e0e0d8 !important; }
+        [data-mode="light"] [class*="border-[#3a3a3a]"] { border-color: #d0d0c8 !important; }
+
+        /* Primary text */
+        [data-mode="light"] [class*="text-[#f5f5f5]"] { color: #1a1a1a !important; }
+
+        /* Secondary text */
+        [data-mode="light"] [class*="text-[#a0a0a0]"] { color: #5a5a5a !important; }
+
+        /* Muted text */
+        [data-mode="light"] [class*="text-[#3a3a3a]"] { color: #b0b0a8 !important; }
+
+        /* Gold accents stay the same - but adjust subtle variants */
+        [data-mode="light"] [class*="bg-[#d4a039]/5"] { background-color: rgba(212,160,57,0.08) !important; }
+        [data-mode="light"] [class*="bg-[#d4a039]/3"] { background-color: rgba(212,160,57,0.05) !important; }
+
+        /* Header backdrop */
+        [data-mode="light"] [class*="bg-[#0a0a0a]/95"] { background-color: rgba(245,245,240,0.95) !important; }
+
+        /* Hover states */
+        [data-mode="light"] [class*="hover:bg-[#2a2a2a]"]:hover { background-color: rgba(0,0,0,0.06) !important; }
+
+        /* Hero overlay */
+        [data-mode="light"] [class*="from-[#0a0a0a]/80"] { --tw-gradient-from: rgba(245,245,240,0.85) !important; }
+        [data-mode="light"] [class*="via-[#0a0a0a]/70"] { --tw-gradient-via: rgba(245,245,240,0.75) !important; }
+        [data-mode="light"] [class*="to-[#0a0a0a]"] { --tw-gradient-to: #f5f5f0 !important; }
+
+        /* Badge backgrounds in admin */
+        [data-mode="light"] .bg-yellow-500\/20 { background-color: rgba(234,179,8,0.15) !important; }
+        [data-mode="light"] .bg-green-500\/20 { background-color: rgba(34,197,94,0.15) !important; }
+        [data-mode="light"] .bg-blue-500\/20 { background-color: rgba(59,130,246,0.15) !important; }
+        [data-mode="light"] .bg-red-500\/20 { background-color: rgba(239,68,68,0.15) !important; }
+
+        /* Sheet / Dialog backgrounds */
+        [data-mode="light"] [class*="bg-[#0a0a0a]"] { background-color: #f5f5f0 !important; }
+
+        /* Input backgrounds */
+        [data-mode="light"] input, [data-mode="light"] textarea { background-color: #ffffff !important; color: #1a1a1a !important; border-color: #e0e0d8 !important; }
+        [data-mode="light"] select { background-color: #ffffff !important; color: #1a1a1a !important; }
+
+        /* Calendar in light mode */
+        [data-mode="light"] .rdp { --rdp-background-color: rgba(212,160,57,0.1) !important; }
+
+        /* Gold text class */
+        [data-mode="light"] .gold-text { color: #b8882e !important; }
+
+        /* Scroll area */
+        [data-mode="light"] [data-radix-scroll-area-viewport] { background-color: transparent !important; }
+      `
+    } else {
+      styleEl.textContent = ''
+    }
+  }
+
+  const setMode = (m: ThemeMode) => {
+    setModeState(m)
+    localStorage.setItem('omani-mode', m)
+    applyMode(m)
+  }
+
+  const toggleMode = () => {
+    setMode(mode === 'dark' ? 'light' : 'dark')
   }
 
   useEffect(() => {
-    applyThemeColors(theme)
-  }, [theme])
+    applyMode(mode)
+  }, [mode])
 
-  return { theme, setTheme }
+  return { mode, setMode, toggleMode }
 }
 
 // Types
@@ -199,7 +222,7 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 // ==================== HEADER ====================
-function Header({ currentView, setView }: { currentView: View; setView: (v: View) => void }) {
+function Header({ currentView, setView, mode, toggleMode }: { currentView: View; setView: (v: View) => void; mode: ThemeMode; toggleMode: () => void }) {
   const [mobileOpen, setMobileOpen] = useState(false)
 
   const navItems = [
@@ -246,40 +269,57 @@ function Header({ currentView, setView }: { currentView: View; setView: (v: View
                 {item.label}
               </button>
             ))}
+            {/* Theme toggle */}
+            <button
+              onClick={toggleMode}
+              className="ml-2 p-2 rounded-lg text-[#a0a0a0] hover:text-[#d4a039] hover:bg-[#d4a039]/10 transition-all duration-200"
+              title={mode === 'dark' ? 'Modo claro' : 'Modo oscuro'}
+            >
+              {mode === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            </button>
           </nav>
 
-          {/* Mobile menu */}
-          <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-            <SheetTrigger asChild className="md:hidden">
-              <Button variant="ghost" size="icon" className="text-[#f5f5f5]">
-                <Menu className="w-6 h-6" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="right" className="bg-[#0a0a0a] border-[#2a2a2a] w-72">
-              <SheetTitle className="text-[#f5f5f5]">Menú</SheetTitle>
-              <div className="flex flex-col gap-2 mt-8">
-                {navItems.map((item) => (
-                  <button
-                    key={item.key}
-                    onClick={() => handleNav(item.key)}
-                    className={`px-4 py-3 rounded-lg text-left font-medium transition-all ${
-                      currentView === item.key
-                        ? 'text-[#d4a039] bg-[#d4a039]/10'
-                        : 'text-[#a0a0a0] hover:text-[#f5f5f5] hover:bg-[#2a2a2a]'
-                    }`}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-                <Button
-                  onClick={() => handleNav('booking')}
-                  className="mt-4 bg-gradient-to-r from-[#d4a039] to-[#b8882e] text-[#0a0a0a] font-bold"
-                >
-                  Reservar Cita
+          {/* Mobile: theme toggle + menu */}
+          <div className="flex items-center gap-1 md:hidden">
+            <button
+              onClick={toggleMode}
+              className="p-2 rounded-lg text-[#a0a0a0] hover:text-[#d4a039] transition-all"
+              title={mode === 'dark' ? 'Modo claro' : 'Modo oscuro'}
+            >
+              {mode === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            </button>
+            <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="text-[#f5f5f5]">
+                  <Menu className="w-6 h-6" />
                 </Button>
-              </div>
-            </SheetContent>
-          </Sheet>
+              </SheetTrigger>
+              <SheetContent side="right" className="bg-[#0a0a0a] border-[#2a2a2a] w-72">
+                <SheetTitle className="text-[#f5f5f5]">Menú</SheetTitle>
+                <div className="flex flex-col gap-2 mt-8">
+                  {navItems.map((item) => (
+                    <button
+                      key={item.key}
+                      onClick={() => handleNav(item.key)}
+                      className={`px-4 py-3 rounded-lg text-left font-medium transition-all ${
+                        currentView === item.key
+                          ? 'text-[#d4a039] bg-[#d4a039]/10'
+                          : 'text-[#a0a0a0] hover:text-[#f5f5f5] hover:bg-[#2a2a2a]'
+                      }`}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                  <Button
+                    onClick={() => handleNav('booking')}
+                    className="mt-4 bg-gradient-to-r from-[#d4a039] to-[#b8882e] text-[#0a0a0a] font-bold"
+                  >
+                    Reservar Cita
+                  </Button>
+                </div>
+              </SheetContent>
+            </Sheet>
+          </div>
         </div>
       </div>
     </header>
@@ -1368,7 +1408,7 @@ function BookingView({ setView }: { setView: (v: View) => void }) {
 }
 
 // ==================== ADMIN VIEW ====================
-function AdminView({ setView, theme, setTheme }: { setView: (v: View) => void; theme: typeof themePresets[0]; setTheme: (t: typeof themePresets[0]) => void }) {
+function AdminView({ setView }: { setView: (v: View) => void }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [password, setPassword] = useState('')
   const [appointments, setAppointments] = useState<Appointment[]>([])
@@ -1538,29 +1578,6 @@ function AdminView({ setView, theme, setTheme }: { setView: (v: View) => void; t
             Inicio
           </Button>
         </div>
-
-        {/* Theme Color Picker */}
-        <Card className="bg-[#1f1f1f] border-[#2a2a2a] mb-6">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3 flex-wrap">
-              <span className="text-sm font-medium text-[#a0a0a0]">Color del tema:</span>
-              {themePresets.map((preset) => (
-                <button
-                  key={preset.name}
-                  onClick={() => setTheme(preset)}
-                  className={`w-8 h-8 rounded-full border-2 transition-all hover:scale-110 ${
-                    theme.primary === preset.primary
-                      ? 'border-white scale-110 shadow-lg'
-                      : 'border-transparent'
-                  }`}
-                  style={{ backgroundColor: preset.primary }}
-                  title={preset.name}
-                />
-              ))}
-              <span className="text-xs text-[#3a3a3a] ml-2">{theme.name}</span>
-            </div>
-          </CardContent>
-        </Card>
 
         {/* Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 mb-6">
@@ -1972,11 +1989,11 @@ function AdminView({ setView, theme, setTheme }: { setView: (v: View) => void; t
 // ==================== MAIN PAGE ====================
 export default function Home() {
   const [currentView, setCurrentView] = useState<View>('home')
-  const { theme, setTheme } = useThemeColor()
+  const { mode, toggleMode } = useThemeMode()
 
   return (
     <div className="min-h-screen flex flex-col bg-[#0a0a0a]">
-      <Header currentView={currentView} setView={setCurrentView} />
+      <Header currentView={currentView} setView={setCurrentView} mode={mode} toggleMode={toggleMode} />
       <main className="flex-1">
         <AnimatePresence mode="wait">
           {currentView === 'home' && (
@@ -2009,7 +2026,7 @@ export default function Home() {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.3 }}
             >
-              <AdminView setView={setCurrentView} theme={theme} setTheme={setTheme} />
+              <AdminView setView={setCurrentView} />
             </motion.div>
           )}
         </AnimatePresence>
