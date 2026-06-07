@@ -20,7 +20,10 @@ import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/s
 import { Separator } from '@/components/ui/separator'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Calendar as ShadcnCalendar } from '@/components/ui/calendar'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { toast } from 'sonner'
+import { es } from 'date-fns/locale/es'
 
 // Types
 interface Service {
@@ -598,7 +601,7 @@ function BookingView({ setView }: { setView: (v: View) => void }) {
   const [loading, setLoading] = useState(false)
   const [bookingComplete, setBookingComplete] = useState(false)
   const [completedAppointment, setCompletedAppointment] = useState<Appointment | null>(null)
-  const [currentMonth, setCurrentMonth] = useState(new Date())
+  const [calendarOpen, setCalendarOpen] = useState(false)
 
   // Fetch services
   useEffect(() => {
@@ -650,29 +653,20 @@ function BookingView({ setView }: { setView: (v: View) => void }) {
   const currentStepIdx = steps.findIndex((s) => s.key === step)
 
   // Calendar helpers
-  const getDaysInMonth = (date: Date) => {
-    const year = date.getFullYear()
-    const month = date.getMonth()
-    const firstDay = new Date(year, month, 1).getDay()
-    const daysInMonth = new Date(year, month + 1, 0).getDate()
-    const days: (number | null)[] = []
-    for (let i = 0; i < firstDay; i++) days.push(null)
-    for (let i = 1; i <= daysInMonth; i++) days.push(i)
-    return days
-  }
-
-  const isDateDisabled = (day: number) => {
-    const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day)
+  const isCalendarDateDisabled = (date: Date) => {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
-    return date < today || date.getDay() === 0 // No Sundays
+    const checkDate = new Date(date)
+    checkDate.setHours(0, 0, 0, 0)
+    return checkDate < today || date.getDay() === 0 // No Sundays
   }
 
-  const handleDateSelect = (day: number) => {
-    if (isDateDisabled(day)) return
-    const dateStr = `${currentMonth.getFullYear()}-${(currentMonth.getMonth() + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`
+  const handleCalendarSelect = (date: Date | undefined) => {
+    if (!date) return
+    const dateStr = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`
     setSelectedDate(dateStr)
     setSelectedTime('')
+    setCalendarOpen(false)
   }
 
   const handleSubmit = async () => {
@@ -988,66 +982,51 @@ function BookingView({ setView }: { setView: (v: View) => void }) {
               <h2 className="text-xl sm:text-2xl font-bold text-[#f5f5f5] mb-2">Selecciona Fecha y Hora</h2>
               <p className="text-[#a0a0a0] text-sm mb-6">Elige el día y horario que prefieras</p>
 
-              {/* Calendar */}
-              <Card className="bg-[#1f1f1f] border-[#2a2a2a] mb-6">
-                <CardContent className="p-4 sm:p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <button
-                      onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))}
-                      className="p-2 hover:bg-[#2a2a2a] rounded-lg transition-colors text-[#a0a0a0] hover:text-[#f5f5f5]"
+              {/* Date Picker */}
+              <div className="mb-6">
+                <Label className="text-[#f5f5f5] mb-2 block">Fecha</Label>
+                <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={`w-full justify-start text-left font-normal bg-[#0a0a0a] border-[#2a2a2a] hover:bg-[#1f1f1f] hover:border-[#d4a039]/50 ${
+                        selectedDate ? 'text-[#f5f5f5]' : 'text-[#3a3a3a]'
+                      }`}
                     >
-                      <ChevronLeft className="w-5 h-5" />
-                    </button>
-                    <h3 className="font-bold text-[#f5f5f5]">
-                      {currentMonth.toLocaleDateString('es-DO', { month: 'long', year: 'numeric' })}
-                    </h3>
-                    <button
-                      onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))}
-                      className="p-2 hover:bg-[#2a2a2a] rounded-lg transition-colors text-[#a0a0a0] hover:text-[#f5f5f5]"
-                    >
-                      <ChevronRight className="w-5 h-5" />
-                    </button>
-                  </div>
-
-                  {/* Day headers */}
-                  <div className="grid grid-cols-7 gap-1 mb-2">
-                    {['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'].map((d) => (
-                      <div key={d} className="text-center text-xs text-[#a0a0a0] font-medium py-2">
-                        {d}
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Days grid */}
-                  <div className="grid grid-cols-7 gap-1">
-                    {getDaysInMonth(currentMonth).map((day, i) => {
-                      if (day === null) {
-                        return <div key={`empty-${i}`} />
-                      }
-                      const disabled = isDateDisabled(day)
-                      const dateStr = `${currentMonth.getFullYear()}-${(currentMonth.getMonth() + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`
-                      const isSelected = selectedDate === dateStr
-
-                      return (
-                        <button
-                          key={day}
-                          onClick={() => handleDateSelect(day)}
-                          disabled={disabled}
-                          className={`aspect-square rounded-lg text-sm font-medium transition-all ${
-                            isSelected
-                              ? 'bg-[#d4a039] text-[#0a0a0a]'
-                              : disabled
-                              ? 'text-[#3a3a3a] cursor-not-allowed'
-                              : 'text-[#a0a0a0] hover:bg-[#2a2a2a] hover:text-[#f5f5f5]'
-                          }`}
-                        >
-                          {day}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
+                      <Calendar className="w-4 h-4 mr-2 text-[#d4a039]" />
+                      {selectedDate ? formatDate(selectedDate) : 'Selecciona una fecha...'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 bg-[#1f1f1f] border-[#2a2a2a]" align="start">
+                    <ShadcnCalendar
+                      mode="single"
+                      selected={selectedDate ? new Date(selectedDate + 'T12:00:00') : undefined}
+                      onSelect={handleCalendarSelect}
+                      disabled={isCalendarDateDisabled}
+                      locale={es}
+                      classNames={{
+                        months: 'flex gap-4 flex-col',
+                        month: 'flex flex-col w-full gap-4',
+                        month_caption: 'flex items-center justify-center h-9 w-full px-8',
+                        caption_label: 'text-sm font-medium text-[#f5f5f5]',
+                        nav: 'flex items-center gap-1 w-full absolute top-0 inset-x-0 justify-between px-1',
+                        button_previous: 'size-9 bg-transparent p-0 opacity-50 hover:opacity-100 transition-opacity inline-flex items-center justify-center rounded-md text-[#a0a0a0] hover:text-[#f5f5f5] hover:bg-[#2a2a2a]',
+                        button_next: 'size-9 bg-transparent p-0 opacity-50 hover:opacity-100 transition-opacity inline-flex items-center justify-center rounded-md text-[#a0a0a0] hover:text-[#f5f5f5] hover:bg-[#2a2a2a]',
+                        weekdays: 'flex',
+                        weekday: 'text-muted-foreground rounded-md flex-1 font-normal text-[0.8rem] select-none text-[#a0a0a0]',
+                        week: 'flex w-full mt-2',
+                        day: 'relative w-full h-full p-0 text-center aspect-square select-none group/day',
+                        day_button: 'size-auto w-full min-w-8 flex aspect-square flex-col gap-1 leading-none font-normal rounded-lg text-[#a0a0a0] hover:bg-[#2a2a2a] hover:text-[#f5f5f5] transition-all',
+                        selected: 'bg-[#d4a039] text-[#0a0a0a] rounded-lg hover:bg-[#c49030] hover:text-[#0a0a0a] font-bold',
+                        today: 'bg-[#2a2a2a] text-[#d4a039] rounded-md',
+                        disabled: 'text-[#3a3a3a] opacity-50 cursor-not-allowed hover:bg-transparent hover:text-[#3a3a3a]',
+                        outside: 'text-[#3a3a3a] aria-selected:text-[#3a3a3a]',
+                        hidden: 'invisible',
+                      }}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
 
               {/* Time slots */}
               {selectedDate && (
