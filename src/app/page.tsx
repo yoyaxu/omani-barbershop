@@ -1293,6 +1293,7 @@ function AdminView({ setView }: { setView: (v: View) => void }) {
   const [filterStatus, setFilterStatus] = useState('all')
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
+  const [adminCalendarOpen, setAdminCalendarOpen] = useState(false)
 
   const fetchAppointments = useCallback(async () => {
     try {
@@ -1510,13 +1511,54 @@ function AdminView({ setView }: { setView: (v: View) => void }) {
           <CardContent className="p-4">
             <div className="flex flex-col sm:flex-row gap-3">
               <div className="flex-1">
-                <Input
-                  type="date"
-                  value={filterDate}
-                  onChange={(e) => setFilterDate(e.target.value)}
-                  className="bg-[#0a0a0a] border-[#2a2a2a] text-[#f5f5f5] focus:border-[#d4a039]"
-                  placeholder="Filtrar por fecha"
-                />
+                <Popover open={adminCalendarOpen} onOpenChange={setAdminCalendarOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={`w-full justify-start text-left font-normal bg-[#0a0a0a] border-[#2a2a2a] hover:bg-[#1f1f1f] hover:border-[#d4a039]/50 ${
+                        filterDate ? 'text-[#f5f5f5]' : 'text-[#3a3a3a]'
+                      }`}
+                    >
+                      <Calendar className="w-4 h-4 mr-2 text-[#d4a039]" />
+                      {filterDate ? formatDate(filterDate) : 'Filtrar por fecha...'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 bg-[#1f1f1f] border-[#2a2a2a]" align="start">
+                    <ShadcnCalendar
+                      mode="single"
+                      selected={filterDate ? new Date(filterDate + 'T12:00:00') : undefined}
+                      onSelect={(date) => {
+                        if (date) {
+                          const dateStr = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`
+                          setFilterDate(dateStr)
+                        } else {
+                          setFilterDate('')
+                        }
+                        setAdminCalendarOpen(false)
+                      }}
+                      locale={es}
+                      classNames={{
+                        months: 'flex gap-4 flex-col',
+                        month: 'flex flex-col w-full gap-4',
+                        month_caption: 'flex items-center justify-center h-9 w-full px-8',
+                        caption_label: 'text-sm font-medium text-[#f5f5f5]',
+                        nav: 'flex items-center gap-1 w-full absolute top-0 inset-x-0 justify-between px-1',
+                        button_previous: 'size-9 bg-transparent p-0 opacity-50 hover:opacity-100 transition-opacity inline-flex items-center justify-center rounded-md text-[#a0a0a0] hover:text-[#f5f5f5] hover:bg-[#2a2a2a]',
+                        button_next: 'size-9 bg-transparent p-0 opacity-50 hover:opacity-100 transition-opacity inline-flex items-center justify-center rounded-md text-[#a0a0a0] hover:text-[#f5f5f5] hover:bg-[#2a2a2a]',
+                        weekdays: 'flex',
+                        weekday: 'text-muted-foreground rounded-md flex-1 font-normal text-[0.8rem] select-none text-[#a0a0a0]',
+                        week: 'flex w-full mt-2',
+                        day: 'relative w-full h-full p-0 text-center aspect-square select-none group/day',
+                        day_button: 'size-auto w-full min-w-8 flex aspect-square flex-col gap-1 leading-none font-normal rounded-lg text-[#a0a0a0] hover:bg-[#2a2a2a] hover:text-[#f5f5f5] transition-all',
+                        selected: 'bg-[#d4a039] text-[#0a0a0a] rounded-lg hover:bg-[#c49030] hover:text-[#0a0a0a] font-bold',
+                        today: 'bg-[#2a2a2a] text-[#d4a039] rounded-md',
+                        disabled: 'text-[#3a3a3a] opacity-50 cursor-not-allowed hover:bg-transparent hover:text-[#3a3a3a]',
+                        outside: 'text-[#3a3a3a] aria-selected:text-[#3a3a3a]',
+                        hidden: 'invisible',
+                      }}
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
               <Select value={filterStatus} onValueChange={setFilterStatus}>
                 <SelectTrigger className="bg-[#0a0a0a] border-[#2a2a2a] text-[#f5f5f5] w-full sm:w-48">
