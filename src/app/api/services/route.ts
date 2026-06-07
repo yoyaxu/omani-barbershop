@@ -1,8 +1,9 @@
-import { db } from '@/lib/db'
+import { db, ensureDbInitialized } from '@/lib/db'
 import { NextResponse } from 'next/server'
 
 export async function GET() {
   try {
+    await ensureDbInitialized()
     const services = await db.service.findMany({
       where: { active: true },
       orderBy: { order: 'asc' },

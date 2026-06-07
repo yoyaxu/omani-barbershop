@@ -1,4 +1,4 @@
-import { db } from '@/lib/db'
+import { db, ensureDbInitialized } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function PATCH(
@@ -6,6 +6,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    await ensureDbInitialized()
     const { id } = await params
     const body = await request.json()
     const { status } = body
@@ -43,6 +44,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    await ensureDbInitialized()
     const { id } = await params
 
     await db.appointmentService.deleteMany({

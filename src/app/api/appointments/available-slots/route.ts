@@ -1,8 +1,9 @@
-import { db } from '@/lib/db'
+import { db, ensureDbInitialized } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(request: NextRequest) {
   try {
+    await ensureDbInitialized()
     const { searchParams } = new URL(request.url)
     const date = searchParams.get('date')
 
