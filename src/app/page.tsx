@@ -662,7 +662,7 @@ function BookingView({ setView }: { setView: (v: View) => void }) {
     today.setHours(0, 0, 0, 0)
     const checkDate = new Date(date)
     checkDate.setHours(0, 0, 0, 0)
-    return checkDate < today || date.getDay() === 0 // No Sundays
+    return checkDate < today || date.getDay() === 0 // No Sundays, today is allowed
   }
 
   const handleCalendarSelect = (date: Date | undefined) => {
