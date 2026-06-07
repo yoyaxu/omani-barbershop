@@ -119,6 +119,7 @@ function Header({ currentView, setView }: { currentView: View; setView: (v: View
   const navItems = [
     { key: 'home' as View, label: 'Inicio' },
     { key: 'booking' as View, label: 'Reservar Cita' },
+    { key: 'admin' as View, label: 'Admin' },
   ]
 
   const handleNav = (v: View) => {
@@ -236,8 +237,8 @@ function HomeView({ setView }: { setView: (v: View) => void }) {
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-[#0a0a0a] bg-pattern">
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0a] via-[#0a0a0a]/90 to-[#0a0a0a]" />
+      <section className="relative overflow-hidden bg-cover bg-center bg-no-repeat" style={{ backgroundImage: "url('/hero-bg.png')" }}>
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0a]/80 via-[#0a0a0a]/70 to-[#0a0a0a]" />
         <div className="absolute top-20 left-1/4 w-96 h-96 bg-[#d4a039]/5 rounded-full blur-3xl" />
         <div className="absolute bottom-10 right-1/4 w-64 h-64 bg-[#d4a039]/3 rounded-full blur-3xl" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-32 lg:py-40">
@@ -508,6 +509,53 @@ function HomeView({ setView }: { setView: (v: View) => void }) {
         </div>
       </section>
 
+      {/* Instagram Gallery */}
+      <section className="py-16 sm:py-24 bg-[#0a0a0a]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="text-center mb-12"
+          >
+            <h2 className="text-3xl sm:text-4xl font-bold mb-2">
+              <span className="gold-text">Síguenos</span> en Instagram
+            </h2>
+            <a
+              href="https://instagram.com/omani_barbershop"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[#d4a039] hover:text-[#e8b94a] transition-colors text-lg inline-flex items-center gap-2"
+            >
+              <Instagram className="w-5 h-5" />
+              @omani_barbershop
+            </a>
+          </motion.div>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
+            {['/ig-1.png', '/ig-2.png', '/ig-3.png', '/ig-1.png', '/ig-2.png', '/ig-3.png'].map((src, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, delay: i * 0.1 }}
+                className="relative group overflow-hidden rounded-xl aspect-square cursor-pointer"
+              >
+                <div
+                  className="w-full h-full bg-cover bg-center transition-transform duration-500 group-hover:scale-110"
+                  style={{ backgroundImage: `url('${src}')` }}
+                />
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all duration-300 flex items-center justify-center">
+                  <Instagram className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Footer */}
       <footer className="py-8 bg-[#0a0a0a] border-t border-[#2a2a2a]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -744,7 +792,7 @@ function BookingView({ setView }: { setView: (v: View) => void }) {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a]">
-      <div className="max-w-3xl mx-auto px-4 py-6 sm:py-10">
+      <div className="max-w-5xl mx-auto px-4 py-6 sm:py-10">
         {/* Back button */}
         <button
           onClick={() => setView('home')}
@@ -793,77 +841,139 @@ function BookingView({ setView }: { setView: (v: View) => void }) {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
             >
-              <h2 className="text-xl sm:text-2xl font-bold text-[#f5f5f5] mb-2">Selecciona tus Servicios</h2>
-              <p className="text-[#a0a0a0] text-sm mb-6">Elige uno o más servicios para tu cita</p>
+              <div className="lg:flex lg:gap-6">
+                {/* Services List */}
+                <div className="lg:flex-1">
+                  <h2 className="text-xl sm:text-2xl font-bold text-[#f5f5f5] mb-2">Selecciona tus Servicios</h2>
+                  <p className="text-[#a0a0a0] text-sm mb-6">Elige uno o más servicios para tu cita</p>
 
-              <div className="space-y-3 mb-6">
-                {services.map((service) => {
-                  const isSelected = selectedServices.has(service.id)
-                  return (
-                    <Card
-                      key={service.id}
-                      className={`cursor-pointer transition-all duration-200 ${
-                        isSelected
-                          ? 'bg-[#1f1f1f] border-[#d4a039] shadow-md shadow-[#d4a039]/10'
-                          : 'bg-[#1f1f1f] border-[#2a2a2a] hover:border-[#3a3a3a]'
-                      }`}
-                      onClick={() => toggleService(service.id)}
-                    >
-                      <CardContent className="p-4 flex items-center gap-3 sm:gap-4">
-                        <Checkbox
-                          checked={isSelected}
-                          onCheckedChange={() => toggleService(service.id)}
-                          className={isSelected ? 'border-[#d4a039] bg-[#d4a039] text-[#0a0a0a]' : ''}
-                        />
-                        <div className="text-xl shrink-0">
-                          {categoryIcons[service.category] || '✂️'}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h3 className={`font-bold text-sm sm:text-base ${isSelected ? 'text-[#d4a039]' : 'text-[#f5f5f5]'}`}>
-                            {service.name}
-                          </h3>
-                          <p className="text-xs text-[#a0a0a0] line-clamp-1">{service.description}</p>
-                        </div>
-                        <div className="text-right shrink-0">
-                          <p className={`font-bold text-sm ${isSelected ? 'text-[#d4a039]' : 'text-[#f5f5f5]'}`}>
-                            {formatPrice(service.price)}
-                          </p>
-                          <p className="text-xs text-[#a0a0a0]">{service.duration} min</p>
+                  <div className="space-y-3 mb-6">
+                    {services.map((service) => {
+                      const isSelected = selectedServices.has(service.id)
+                      return (
+                        <Card
+                          key={service.id}
+                          className={`cursor-pointer transition-all duration-200 ${
+                            isSelected
+                              ? 'bg-[#1f1f1f] border-[#d4a039] shadow-md shadow-[#d4a039]/10'
+                              : 'bg-[#1f1f1f] border-[#2a2a2a] hover:border-[#3a3a3a]'
+                          }`}
+                          onClick={() => toggleService(service.id)}
+                        >
+                          <CardContent className="p-4 flex items-center gap-3 sm:gap-4">
+                            <Checkbox
+                              checked={isSelected}
+                              onCheckedChange={() => toggleService(service.id)}
+                              className={isSelected ? 'border-[#d4a039] bg-[#d4a039] text-[#0a0a0a]' : ''}
+                            />
+                            <div className="text-xl shrink-0">
+                              {categoryIcons[service.category] || '✂️'}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h3 className={`font-bold text-sm sm:text-base ${isSelected ? 'text-[#d4a039]' : 'text-[#f5f5f5]'}`}>
+                                {service.name}
+                              </h3>
+                              <p className="text-xs text-[#a0a0a0] line-clamp-1">{service.description}</p>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <p className={`font-bold text-sm ${isSelected ? 'text-[#d4a039]' : 'text-[#f5f5f5]'}`}>
+                                {formatPrice(service.price)}
+                              </p>
+                              <p className="text-xs text-[#a0a0a0]">{service.duration} min</p>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )
+                    })}
+                  </div>
+
+                  {/* Mobile total bar */}
+                  {selectedServices.size > 0 && (
+                    <Card className="bg-[#1f1f1f] border-[#d4a039]/30 mb-6 lg:hidden">
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm text-[#a0a0a0]">
+                              {selectedServices.size} servicio{selectedServices.size > 1 ? 's' : ''} seleccionado{selectedServices.size > 1 ? 's' : ''}
+                            </p>
+                            <div className="flex gap-4 mt-1">
+                              <span className="text-[#d4a039] font-bold">{formatPrice(totalPrice)}</span>
+                              <span className="text-[#a0a0a0] text-sm flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                {totalDuration} min
+                              </span>
+                            </div>
+                          </div>
+                          <Button
+                            onClick={() => setStep('datetime')}
+                            className="bg-gradient-to-r from-[#d4a039] to-[#b8882e] text-[#0a0a0a] font-bold"
+                          >
+                            Continuar
+                            <ChevronRight className="w-4 h-4 ml-1" />
+                          </Button>
                         </div>
                       </CardContent>
                     </Card>
-                  )
-                })}
-              </div>
+                  )}
+                </div>
 
-              {/* Total bar */}
-              {selectedServices.size > 0 && (
-                <Card className="bg-[#1f1f1f] border-[#d4a039]/30 mb-6">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-[#a0a0a0]">
-                          {selectedServices.size} servicio{selectedServices.size > 1 ? 's' : ''} seleccionado{selectedServices.size > 1 ? 's' : ''}
-                        </p>
-                        <div className="flex gap-4 mt-1">
-                          <span className="text-[#d4a039] font-bold">{formatPrice(totalPrice)}</span>
-                          <span className="text-[#a0a0a0] text-sm flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            {totalDuration} min
-                          </span>
-                        </div>
-                      </div>
-                      <Button
-                        onClick={() => setStep('datetime')}
-                        className="bg-gradient-to-r from-[#d4a039] to-[#b8882e] text-[#0a0a0a] font-bold"
-                      >
-                        Continuar
-                        <ChevronRight className="w-4 h-4 ml-1" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
+                {/* Desktop Side Summary Panel */}
+                <div className="hidden lg:block lg:w-80">
+                  <div className="sticky top-24">
+                    <Card className="bg-[#1f1f1f] border-[#2a2a2a]">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-[#f5f5f5] text-base">Tu Reserva</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        {selectedServicesList.length === 0 ? (
+                          <p className="text-[#a0a0a0] text-sm text-center py-4">
+                            Selecciona servicios para ver el resumen
+                          </p>
+                        ) : (
+                          <>
+                            {selectedServicesList.map((service) => (
+                              <div key={service.id} className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <span className="text-sm">{categoryIcons[service.category] || '✂️'}</span>
+                                  <span className="text-[#f5f5f5] text-sm truncate">{service.name}</span>
+                                </div>
+                                <div className="flex items-center gap-2 shrink-0">
+                                  <button
+                                    onClick={() => toggleService(service.id)}
+                                    className="text-[#a0a0a0] hover:text-red-400 transition-colors"
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                  </button>
+                                  <span className="text-[#d4a039] text-sm font-bold">{formatPrice(service.price)}</span>
+                                </div>
+                              </div>
+                            ))}
+                            <Separator className="bg-[#2a2a2a]" />
+                            <div className="flex justify-between items-center">
+                              <span className="text-[#a0a0a0] text-sm">Duración total</span>
+                              <span className="text-[#f5f5f5] text-sm flex items-center gap-1">
+                                <Clock className="w-3.5 h-3.5" />
+                                {totalDuration} min
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-[#d4a039] font-bold">Total</span>
+                              <span className="text-[#d4a039] font-bold text-lg">{formatPrice(totalPrice)}</span>
+                            </div>
+                            <Button
+                              onClick={() => setStep('datetime')}
+                              className="w-full bg-gradient-to-r from-[#d4a039] to-[#b8882e] text-[#0a0a0a] font-bold mt-2"
+                            >
+                              Continuar
+                              <ChevronRight className="w-4 h-4 ml-1" />
+                            </Button>
+                          </>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+              </div>
             </motion.div>
           )}
 
