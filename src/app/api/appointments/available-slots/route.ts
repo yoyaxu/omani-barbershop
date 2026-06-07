@@ -13,9 +13,9 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Generate all possible time slots (9:00 AM to 7:00 PM, every 30 min)
+    // Generate all possible time slots (8:00 AM to 8:00 PM, every 30 min)
     const allSlots = []
-    for (let hour = 9; hour < 19; hour++) {
+    for (let hour = 8; hour < 20; hour++) {
       allSlots.push(`${hour.toString().padStart(2, '0')}:00`)
       allSlots.push(`${hour.toString().padStart(2, '0')}:30`)
     }

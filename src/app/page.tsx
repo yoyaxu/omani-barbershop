@@ -261,7 +261,7 @@ function HomeView({ setView }: { setView: (v: View) => void }) {
               <span className="text-[#f5f5f5]">Nuestra Pasión</span>
             </h1>
             <p className="text-lg sm:text-xl text-[#a0a0a0] max-w-2xl mx-auto mb-8 sm:mb-10">
-              La mejor experiencia de barbería en Santo Domingo.
+              La mejor experiencia de barbería en Santo Domingo Norte.
               Profesionales dedicados a realzar tu estilo único.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -402,9 +402,8 @@ function HomeView({ setView }: { setView: (v: View) => void }) {
                   <div>
                     <h3 className="font-bold text-[#f5f5f5] mb-2">Horario de Atención</h3>
                     <div className="space-y-1 text-sm text-[#a0a0a0]">
-                      <p>Lunes a Viernes: 9:00 AM - 7:00 PM</p>
-                      <p>Sábados: 9:00 AM - 6:00 PM</p>
-                      <p>Domingos: Cerrado</p>
+                      <p>Miércoles a Lunes: 8:00 AM - 8:00 PM</p>
+                      <p>Martes: Cerrado</p>
                     </div>
                   </div>
                 </CardContent>
@@ -418,7 +417,7 @@ function HomeView({ setView }: { setView: (v: View) => void }) {
                   <div>
                     <h3 className="font-bold text-[#f5f5f5] mb-2">Ubicación</h3>
                     <p className="text-sm text-[#a0a0a0]">
-                      Santo Domingo Este, Autopista de San Isidro
+                      Calle Marcos del Rosario, esquina C. José Martí, Santo Domingo Norte
                     </p>
                   </div>
                 </CardContent>
@@ -662,7 +661,7 @@ function BookingView({ setView }: { setView: (v: View) => void }) {
     today.setHours(0, 0, 0, 0)
     const checkDate = new Date(date)
     checkDate.setHours(0, 0, 0, 0)
-    return checkDate < today || date.getDay() === 0 // No Sundays, today is allowed
+    return checkDate < today || date.getDay() === 2 // Closed on Tuesdays, today is allowed
   }
 
   const handleCalendarSelect = (date: Date | undefined) => {
