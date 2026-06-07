@@ -537,23 +537,27 @@ function HomeView({ setView }: { setView: (v: View) => void }) {
           </motion.div>
 
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
-            {['/ig-1.png', '/ig-2.png', '/ig-3.png', '/ig-1.png', '/ig-2.png', '/ig-3.png'].map((src, i) => (
-              <motion.div
+            {['/instagram/insta1.png', '/instagram/insta2.png', '/instagram/insta3.png', '/instagram/insta4.png', '/instagram/insta5.png', '/instagram/insta6.png'].map((src, i) => (
+              <motion.a
                 key={i}
+                href="https://instagram.com/omani_barbershop"
+                target="_blank"
+                rel="noopener noreferrer"
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.4, delay: i * 0.1 }}
                 className="relative group overflow-hidden rounded-xl aspect-square cursor-pointer"
               >
-                <div
-                  className="w-full h-full bg-cover bg-center transition-transform duration-500 group-hover:scale-110"
-                  style={{ backgroundImage: `url('${src}')` }}
+                <img
+                  src={src}
+                  alt={`Aflow Barbershop - ${i + 1}`}
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                 />
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all duration-300 flex items-center justify-center">
                   <Instagram className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 </div>
-              </motion.div>
+              </motion.a>
             ))}
           </div>
         </div>
@@ -1343,10 +1347,16 @@ function AdminView({ setView }: { setView: (v: View) => void }) {
 
   // Stats
   const today = new Date().toISOString().split('T')[0]
+  const now = new Date()
+  const monthStart = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-01`
   const todayAppointments = appointments.filter((a) => a.date === today)
+  const monthAppointments = appointments.filter((a) => a.date >= monthStart && a.date <= today)
   const pendingCount = appointments.filter((a) => a.status === 'pending').length
   const completedCount = appointments.filter((a) => a.status === 'completed').length
   const todayRevenue = todayAppointments
+    .filter((a) => a.status !== 'cancelled')
+    .reduce((sum, a) => sum + a.totalPrice, 0)
+  const monthlyRevenue = monthAppointments
     .filter((a) => a.status !== 'cancelled')
     .reduce((sum, a) => sum + a.totalPrice, 0)
 
@@ -1427,7 +1437,7 @@ function AdminView({ setView }: { setView: (v: View) => void }) {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 mb-6">
           <Card className="bg-[#1f1f1f] border-[#2a2a2a]">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
@@ -1476,6 +1486,19 @@ function AdminView({ setView }: { setView: (v: View) => void }) {
                 <div>
                   <p className="text-xs text-[#a0a0a0]">Ingresos hoy</p>
                   <p className="text-xl font-bold text-[#d4a039]">{formatPrice(todayRevenue)}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-[#1f1f1f] border-[#2a2a2a]">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                  <TrendingUp className="w-5 h-5 text-emerald-400" />
+                </div>
+                <div>
+                  <p className="text-xs text-[#a0a0a0]">Ingresos del mes</p>
+                  <p className="text-xl font-bold text-emerald-400">{formatPrice(monthlyRevenue)}</p>
                 </div>
               </div>
             </CardContent>
