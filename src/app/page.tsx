@@ -1725,17 +1725,18 @@ function AdminView({ setView }: { setView: (v: View) => void }) {
 
                                   {/* Actions */}
                                   <div className="flex flex-wrap gap-2">
-                                    {selectedAppointment.status === 'cancelled' && (
+                                    {selectedAppointment.status !== 'pending' && (
                                       <Button
                                         onClick={() => updateStatus(selectedAppointment.id, 'pending')}
                                         size="sm"
-                                        className="bg-[#d4a039] hover:bg-[#c49030] text-[#0a0a0a]"
+                                        variant="outline"
+                                        className="border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10"
                                       >
-                                        <RotateCcw className="w-4 h-4 mr-1" />
-                                        Reactivar
+                                        <AlertCircle className="w-4 h-4 mr-1" />
+                                        Pendiente
                                       </Button>
                                     )}
-                                    {(selectedAppointment.status === 'pending' || selectedAppointment.status === 'cancelled') && (
+                                    {selectedAppointment.status !== 'confirmed' && (
                                       <Button
                                         onClick={() => updateStatus(selectedAppointment.id, 'confirmed')}
                                         size="sm"
@@ -1745,7 +1746,7 @@ function AdminView({ setView }: { setView: (v: View) => void }) {
                                         Confirmar
                                       </Button>
                                     )}
-                                    {(selectedAppointment.status === 'pending' || selectedAppointment.status === 'confirmed' || selectedAppointment.status === 'cancelled') && (
+                                    {selectedAppointment.status !== 'completed' && (
                                       <Button
                                         onClick={() => updateStatus(selectedAppointment.id, 'completed')}
                                         size="sm"
@@ -1755,7 +1756,7 @@ function AdminView({ setView }: { setView: (v: View) => void }) {
                                         Completar
                                       </Button>
                                     )}
-                                    {selectedAppointment.status !== 'cancelled' && selectedAppointment.status !== 'completed' && (
+                                    {selectedAppointment.status !== 'cancelled' && (
                                       <Button
                                         onClick={() => updateStatus(selectedAppointment.id, 'cancelled')}
                                         size="sm"
@@ -1790,18 +1791,18 @@ function AdminView({ setView }: { setView: (v: View) => void }) {
                           </Dialog>
 
                           {/* Quick actions */}
-                          {apt.status === 'cancelled' && (
+                          {apt.status !== 'pending' && (
                             <Button
                               onClick={() => updateStatus(apt.id, 'pending')}
                               size="icon"
                               variant="ghost"
-                              className="h-8 w-8 text-[#d4a039] hover:text-[#e8b94a] hover:bg-[#d4a039]/10"
-                              title="Reactivar"
+                              className="h-8 w-8 text-yellow-400 hover:text-yellow-300 hover:bg-yellow-500/10"
+                              title="Pendiente"
                             >
-                              <RotateCcw className="w-4 h-4" />
+                              <AlertCircle className="w-4 h-4" />
                             </Button>
                           )}
-                          {apt.status === 'pending' && (
+                          {apt.status !== 'confirmed' && (
                             <Button
                               onClick={() => updateStatus(apt.id, 'confirmed')}
                               size="icon"
@@ -1812,7 +1813,18 @@ function AdminView({ setView }: { setView: (v: View) => void }) {
                               <Check className="w-4 h-4" />
                             </Button>
                           )}
-                          {apt.status !== 'cancelled' && apt.status !== 'completed' && (
+                          {apt.status !== 'completed' && (
+                            <Button
+                              onClick={() => updateStatus(apt.id, 'completed')}
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8 text-blue-400 hover:text-blue-300 hover:bg-blue-500/10"
+                              title="Completar"
+                            >
+                              <TrendingUp className="w-4 h-4" />
+                            </Button>
+                          )}
+                          {apt.status !== 'cancelled' && (
                             <Button
                               onClick={() => updateStatus(apt.id, 'cancelled')}
                               size="icon"
