@@ -1,7 +1,6 @@
 import { PrismaClient } from '@prisma/client'
 import path from 'path'
 import fs from 'fs'
-import { execSync } from 'child_process'
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
@@ -18,22 +17,6 @@ if (!fs.existsSync(DB_DIR)) {
   fs.mkdirSync(DB_DIR, { recursive: true })
 }
 
-// In Vercel: if DB doesn't exist at /tmp, create it by pushing the schema
-if (isVercel && !fs.existsSync(DB_PATH)) {
-  try {
-    console.log('Setting up database for Vercel serverless...')
-    // Use Prisma CLI to push schema to the new database location
-    execSync('npx prisma db push --accept-data-loss --skip-generate', {
-      env: { ...process.env, DATABASE_URL: DB_URL },
-      stdio: 'pipe',
-      timeout: 30000,
-    })
-    console.log('Database created at:', DB_PATH)
-  } catch (e) {
-    console.error('Failed to create database:', e)
-  }
-}
-
 // Set DATABASE_URL for PrismaClient
 process.env.DATABASE_URL = DB_URL
 
@@ -43,22 +26,92 @@ export const db =
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = db
 
-// Auto-seed services on first request
-let dbSeeded = false
+// Track if we've done the initial setup
+let initialized = false
 
 export async function ensureDbInitialized() {
-  if (dbSeeded) return
+  if (initialized) return
 
+  try {
+    // Try a simple query to see if tables exist
+    await db.service.count()
+    initialized = true
+  } catch (error: any) {
+    // If tables don't exist, we need to create them
+    if (error?.message?.includes('no such table') || error?.code === 'P2021') {
+      console.log('Tables not found, creating database schema...')
+      await createTablesAndSeed()
+      initialized = true
+    } else {
+      console.error('DB init error:', error)
+    }
+  }
+
+  // Auto-seed if no services exist
   try {
     const count = await db.service.count()
     if (count === 0) {
       await seedServices()
     }
-    dbSeeded = true
-  } catch (error) {
-    console.error('DB init error:', error)
-    dbSeeded = false
+    initialized = true
+  } catch {
+    // Already handled above
   }
+}
+
+async function createTablesAndSeed() {
+  // Use Prisma's internal $executeRaw to create tables
+  // This works because SQLite will auto-create the database file
+
+  await db.$executeRawUnsafe(`
+    CREATE TABLE IF NOT EXISTS Service (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      description TEXT NOT NULL,
+      price INTEGER NOT NULL,
+      duration INTEGER NOT NULL,
+      category TEXT NOT NULL DEFAULT 'general',
+      image TEXT,
+      active INTEGER NOT NULL DEFAULT 1,
+      "order" INTEGER NOT NULL DEFAULT 0,
+      createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+  `)
+
+  await db.$executeRawUnsafe(`
+    CREATE TABLE IF NOT EXISTS Appointment (
+      id TEXT PRIMARY KEY,
+      customerName TEXT NOT NULL,
+      customerPhone TEXT NOT NULL,
+      customerEmail TEXT NOT NULL,
+      date TEXT NOT NULL,
+      time TEXT NOT NULL,
+      numberOfPeople INTEGER NOT NULL DEFAULT 1,
+      totalPrice INTEGER NOT NULL,
+      totalDuration INTEGER NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      notes TEXT,
+      createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+  `)
+
+  await db.$executeRawUnsafe(`
+    CREATE TABLE IF NOT EXISTS AppointmentService (
+      id TEXT PRIMARY KEY,
+      appointmentId TEXT NOT NULL,
+      serviceId TEXT NOT NULL,
+      price INTEGER NOT NULL,
+      createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (appointmentId) REFERENCES Appointment(id) ON DELETE CASCADE,
+      FOREIGN KEY (serviceId) REFERENCES Service(id),
+      UNIQUE(appointmentId, serviceId)
+    );
+  `)
+
+  console.log('Tables created successfully')
+  await seedServices()
 }
 
 async function seedServices() {
@@ -75,6 +128,10 @@ async function seedServices() {
     { id: 'lavado-plus-styling', name: 'Lavado + Styling', description: 'Lavado profesional con secado y styling personalizado', price: 350, duration: 25, category: 'styling', order: 10 },
   ]
 
-  await db.service.createMany({ data: services })
-  console.log('Services seeded successfully')
+  try {
+    await db.service.createMany({ data: services })
+    console.log('Services seeded successfully')
+  } catch (e) {
+    console.error('Seed error:', e)
+  }
 }
