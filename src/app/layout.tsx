@@ -14,15 +14,15 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Aflow Barbershop | Tu Estilo, Nuestra Pasión",
+  title: "Omani Barbershop | Tu Estilo, Nuestra Pasión",
   description: "La mejor experiencia de barbería en Santo Domingo. Cortes de cabello, afeitado, tratamientos capilares y más. Reserva tu cita en línea.",
-  keywords: ["barbería", "barbershop", "corte de cabello", "afeitado", "Santo Domingo", "Aflow", "reserva cita"],
-  authors: [{ name: "Aflow Barbershop" }],
+  keywords: ["barbería", "barbershop", "corte de cabello", "afeitado", "Santo Domingo", "Omani", "reserva cita"],
+  authors: [{ name: "Omani Barbershop" }],
   icons: {
     icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💈</text></svg>",
   },
   openGraph: {
-    title: "Aflow Barbershop | Tu Estilo, Nuestra Pasión",
+    title: "Omani Barbershop | Tu Estilo, Nuestra Pasión",
     description: "La mejor experiencia de barbería en Santo Domingo",
     type: "website",
   },
