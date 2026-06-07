@@ -26,6 +26,100 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { toast } from 'sonner'
 import { es } from 'date-fns/locale/es'
 
+// Theme presets
+const themePresets = [
+  { name: 'Dorado', primary: '#d4a039', primaryLight: '#e8b94a', primaryDark: '#b8882e' },
+  { name: 'Rojo', primary: '#dc2626', primaryLight: '#ef4444', primaryDark: '#b91c1c' },
+  { name: 'Azul', primary: '#2563eb', primaryLight: '#3b82f6', primaryDark: '#1d4ed8' },
+  { name: 'Verde', primary: '#16a34a', primaryLight: '#22c55e', primaryDark: '#15803d' },
+  { name: 'Púrpura', primary: '#9333ea', primaryLight: '#a855f7', primaryDark: '#7e22ce' },
+  { name: 'Rosa', primary: '#ec4899', primaryLight: '#f472b6', primaryDark: '#db2777' },
+  { name: 'Naranja', primary: '#ea580c', primaryLight: '#f97316', primaryDark: '#c2410c' },
+  { name: 'Cian', primary: '#0891b2', primaryLight: '#06b6d4', primaryDark: '#0e7490' },
+]
+
+function useThemeColor() {
+  const [theme, setThemeState] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('omani-theme')
+      if (saved) return JSON.parse(saved)
+    }
+    return themePresets[0]
+  })
+
+  const setTheme = (preset: typeof themePresets[0]) => {
+    setThemeState(preset)
+    localStorage.setItem('omani-theme', JSON.stringify(preset))
+    applyThemeColors(preset)
+  }
+
+  const applyThemeColors = (preset: typeof themePresets[0]) => {
+    const root = document.documentElement
+    root.setAttribute('data-theme-active', '')
+    root.style.setProperty('--theme-primary', preset.primary)
+    root.style.setProperty('--theme-primary-light', preset.primaryLight)
+    root.style.setProperty('--theme-primary-dark', preset.primaryDark)
+    root.style.setProperty('--primary', preset.primary)
+    root.style.setProperty('--ring', preset.primary)
+    root.style.setProperty('--chart-1', preset.primary)
+    root.style.setProperty('--sidebar-primary', preset.primary)
+    root.style.setProperty('--sidebar-ring', preset.primary)
+
+    // Dynamic style override for all hardcoded gold colors
+    let styleEl = document.getElementById('omani-theme-override') as HTMLStyleElement | null
+    if (!styleEl) {
+      styleEl = document.createElement('style')
+      styleEl.id = 'omani-theme-override'
+      document.head.appendChild(styleEl)
+    }
+    const p = preset.primary
+    const pl = preset.primaryLight
+    const pd = preset.primaryDark
+    // Convert hex to rgba for transparency variants
+    const r = parseInt(p.slice(1, 3), 16)
+    const g = parseInt(p.slice(3, 5), 16)
+    const b = parseInt(p.slice(5, 7), 16)
+
+    styleEl.textContent = `
+      /* Background color overrides */
+      [data-theme-active] [class*="bg-[#d4a039]"] { background-color: ${p} !important; }
+      [data-theme-active] [class*="bg-[#d4a039]/10"] { background-color: rgba(${r},${g},${b},0.1) !important; }
+      [data-theme-active] [class*="bg-[#d4a039]/20"] { background-color: rgba(${r},${g},${b},0.2) !important; }
+      /* Text color overrides */
+      [data-theme-active] [class*="text-[#d4a039]"] { color: ${p} !important; }
+      /* Border overrides */
+      [data-theme-active] [class*="border-[#d4a039]"] { border-color: ${p} !important; }
+      [data-theme-active] [class*="border-[#d4a039]/50"] { border-color: rgba(${r},${g},${b},0.5) !important; }
+      [data-theme-active] [class*="border-[#d4a039]/30"] { border-color: rgba(${r},${g},${b},0.3) !important; }
+      /* Gradient overrides */
+      [data-theme-active] [class*="from-[#d4a039]"] { --tw-gradient-from: ${p} !important; }
+      [data-theme-active] [class*="to-[#b8882e]"] { --tw-gradient-to: ${pd} !important; }
+      [data-theme-active] [class*="hover:from-[#e8b94a]"] { --tw-gradient-from: ${pl} !important; }
+      [data-theme-active] [class*="hover:to-[#d4a039]"] { --tw-gradient-to: ${p} !important; }
+      /* Shadow overrides */
+      [data-theme-active] [class*="shadow-[#d4a039]"] { --tw-shadow-color: rgba(${r},${g},${b},0.2) !important; }
+      /* Hover overrides */
+      [data-theme-active] [class*="hover:border-[#d4a039]"]:hover { border-color: ${p} !important; }
+      [data-theme-active] [class*="hover:text-[#d4a039]"]:hover { color: ${p} !important; }
+      /* Focus overrides */
+      [data-theme-active] [class*="focus:border-[#d4a039]"]:focus { border-color: ${p} !important; }
+      /* Calendar selected day */
+      [data-theme-active] .bg-\\[\\#d4a039\\] { background-color: ${p} !important; }
+      [data-theme-active] .text-\\[\\#d4a039\\] { color: ${p} !important; }
+      [data-theme-active] .from-\\[\\#d4a039\\] { --tw-gradient-from: ${p} !important; }
+      [data-theme-active] .to-\\[\\#b8882e\\] { --tw-gradient-to: ${pd} !important; }
+      [data-theme-active] .hover\\:from-\\[\\#e8b94a\\]\\:hover { --tw-gradient-from: ${pl} !important; }
+      [data-theme-active] .hover\\:to-\\[\\#d4a039\\]\\:hover { --tw-gradient-to: ${p} !important; }
+    `
+  }
+
+  useEffect(() => {
+    applyThemeColors(theme)
+  }, [theme])
+
+  return { theme, setTheme }
+}
+
 // Types
 interface Service {
   id: string
@@ -122,7 +216,7 @@ function Header({ currentView, setView }: { currentView: View; setView: (v: View
 
   const navItems = [
     { key: 'home' as View, label: 'Inicio' },
-    { key: 'booking' as View, label: 'Reservar Cita' },
+    { key: 'booking' as View, label: 'Sobre Nosotros' },
     { key: 'admin' as View, label: 'Admin' },
   ]
 
@@ -144,7 +238,7 @@ function Header({ currentView, setView }: { currentView: View; setView: (v: View
               <Scissors className="w-4 h-4 sm:w-5 sm:h-5 text-[#0a0a0a] rotate-[-45deg]" />
             </div>
             <div>
-              <span className="text-lg sm:text-xl font-bold tracking-wider gold-text">AFLOW</span>
+              <span className="text-lg sm:text-xl font-bold tracking-wider gold-text">OMANI</span>
               <span className="hidden sm:block text-[10px] tracking-[0.3em] text-[#a0a0a0] uppercase -mt-1">Barbershop</span>
             </div>
           </button>
@@ -164,12 +258,6 @@ function Header({ currentView, setView }: { currentView: View; setView: (v: View
                 {item.label}
               </button>
             ))}
-            <Button
-              onClick={() => handleNav('booking')}
-              className="ml-3 bg-gradient-to-r from-[#d4a039] to-[#b8882e] text-[#0a0a0a] font-bold hover:from-[#e8b94a] hover:to-[#d4a039] transition-all"
-            >
-              Reservar Cita
-            </Button>
           </nav>
 
           {/* Mobile menu */}
@@ -199,7 +287,7 @@ function Header({ currentView, setView }: { currentView: View; setView: (v: View
                   onClick={() => handleNav('booking')}
                   className="mt-4 bg-gradient-to-r from-[#d4a039] to-[#b8882e] text-[#0a0a0a] font-bold"
                 >
-                  Reservar Cita
+                  Sobre Nosotros
                 </Button>
               </div>
             </SheetContent>
@@ -273,6 +361,14 @@ function HomeView({ setView }: { setView: (v: View) => void }) {
               >
                 <Calendar className="w-5 h-5 mr-2" />
                 Reservar Cita
+              </Button>
+              <Button
+                onClick={() => document.getElementById('about')?.scrollIntoView({ behavior: 'smooth' })}
+                size="lg"
+                variant="outline"
+                className="border-[#d4a039]/50 text-[#d4a039] hover:bg-[#d4a039]/10 text-lg px-8 py-6"
+              >
+                Sobre Nosotros
               </Button>
               <Button
                 onClick={() => document.getElementById('services')?.scrollIntoView({ behavior: 'smooth' })}
@@ -358,7 +454,7 @@ function HomeView({ setView }: { setView: (v: View) => void }) {
       </section>
 
       {/* About Section */}
-      <section className="py-16 sm:py-24 bg-[#0a0a0a]">
+      <section id="about" className="py-16 sm:py-24 bg-[#0a0a0a]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-2 gap-8 sm:gap-12 items-center">
             <motion.div
@@ -371,7 +467,7 @@ function HomeView({ setView }: { setView: (v: View) => void }) {
                 <span className="gold-text">Sobre</span> Nosotros
               </h2>
               <p className="text-[#a0a0a0] mb-4 leading-relaxed">
-                En Aflow Barbershop, nos dedicamos a ofrecer más que un simple corte de cabello.
+                En Omani Barbershop, nos dedicamos a ofrecer más que un simple corte de cabello.
                 Creemos en la experiencia completa: desde el momento que entras hasta que sales
                 luciendo tu mejor versión.
               </p>
@@ -479,8 +575,8 @@ function HomeView({ setView }: { setView: (v: View) => void }) {
                   <Mail className="w-5 h-5 text-[#d4a039]" />
                 </div>
                 <h3 className="font-bold text-[#f5f5f5] text-sm mb-1">Email</h3>
-                <a href="mailto:jonathan.flrod@gmail.com" className="text-[#a0a0a0] text-xs sm:text-sm hover:text-[#d4a039] transition-colors break-all">
-                  jonathan.flrod@gmail.com
+                <a href="mailto:abreuomani@gmail.com" className="text-[#a0a0a0] text-xs sm:text-sm hover:text-[#d4a039] transition-colors break-all">
+                  abreuomani@gmail.com
                 </a>
               </CardContent>
             </Card>
@@ -504,7 +600,7 @@ function HomeView({ setView }: { setView: (v: View) => void }) {
                     <Facebook className="w-5 h-5 text-[#d4a039]" />
                   </div>
                   <h3 className="font-bold text-[#f5f5f5] text-sm mb-1">Facebook</h3>
-                  <p className="text-[#a0a0a0] text-sm">Aflow Barbershop</p>
+                  <p className="text-[#a0a0a0] text-sm">Omani Barbershop</p>
                 </a>
               </CardContent>
             </Card>
@@ -551,7 +647,7 @@ function HomeView({ setView }: { setView: (v: View) => void }) {
               >
                 <img
                   src={src}
-                  alt={`Aflow Barbershop - ${i + 1}`}
+                  alt={`Omani Barbershop - ${i + 1}`}
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                 />
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all duration-300 flex items-center justify-center">
@@ -569,11 +665,11 @@ function HomeView({ setView }: { setView: (v: View) => void }) {
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
               <Scissors className="w-4 h-4 text-[#d4a039] rotate-[-45deg]" />
-              <span className="text-sm font-bold gold-text">AFLOW</span>
+              <span className="text-sm font-bold gold-text">OMANI</span>
               <span className="text-sm text-[#a0a0a0]">Barbershop</span>
             </div>
             <p className="text-xs text-[#a0a0a0]">
-              © {new Date().getFullYear()} Aflow Barbershop. Todos los derechos reservados.
+              © {new Date().getFullYear()} Omani Barbershop. Todos los derechos reservados.
             </p>
             <button
               onClick={() => setView('admin')}
@@ -1284,7 +1380,7 @@ function BookingView({ setView }: { setView: (v: View) => void }) {
 }
 
 // ==================== ADMIN VIEW ====================
-function AdminView({ setView }: { setView: (v: View) => void }) {
+function AdminView({ setView, theme, setTheme }: { setView: (v: View) => void; theme: typeof themePresets[0]; setTheme: (t: typeof themePresets[0]) => void }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [password, setPassword] = useState('')
   const [appointments, setAppointments] = useState<Appointment[]>([])
@@ -1332,6 +1428,10 @@ function AdminView({ setView }: { setView: (v: View) => void }) {
           pending: 'reactivada',
         }
         toast.success(`Cita ${statusLabels[status] || 'actualizada'}`)
+        // Update selectedAppointment if detail dialog is open
+        if (selectedAppointment?.id === id) {
+          setSelectedAppointment((prev) => prev ? { ...prev, status } : null)
+        }
         fetchAppointments()
       }
     } catch {
@@ -1341,7 +1441,7 @@ function AdminView({ setView }: { setView: (v: View) => void }) {
 
   const sendWhatsApp = (appointment: Appointment) => {
     const servicesList = appointment.services.map((s) => s.service.name).join(', ')
-    const message = `¡Hola ${appointment.customerName}! 👋\n\nTe confirmamos tu cita en *Aflow Barbershop*:\n\n📅 *Fecha:* ${formatDate(appointment.date)}\n🕐 *Hora:* ${formatTime(appointment.time)}\n✂️ *Servicios:* ${servicesList}\n💰 *Total:* ${formatPrice(appointment.totalPrice)}\n👥 *Personas:* ${appointment.numberOfPeople}\n\n¡Te esperamos! 🙏\n\n📍 Calle Marcos del Rosario, esq. C. José Martí, Santo Domingo Norte`
+    const message = `¡Hola ${appointment.customerName}! 👋\n\nTe confirmamos tu cita en *Omani Barbershop*:\n\n📅 *Fecha:* ${formatDate(appointment.date)}\n🕐 *Hora:* ${formatTime(appointment.time)}\n✂️ *Servicios:* ${servicesList}\n💰 *Total:* ${formatPrice(appointment.totalPrice)}\n👥 *Personas:* ${appointment.numberOfPeople}\n\n¡Te esperamos! 🙏\n\n📍 Calle Marcos del Rosario, esq. C. José Martí, Santo Domingo Norte`
     const phone = appointment.customerPhone.replace(/\D/g, '')
     const waNumber = phone.startsWith('1') ? phone : `1${phone}`
     window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(message)}`, '_blank')
@@ -1438,7 +1538,7 @@ function AdminView({ setView }: { setView: (v: View) => void }) {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-[#f5f5f5]">Panel de Administración</h1>
-            <p className="text-sm text-[#a0a0a0]">Gestiona las citas de Aflow Barbershop</p>
+            <p className="text-sm text-[#a0a0a0]">Gestiona las citas de Omani Barbershop</p>
           </div>
           <Button
             onClick={() => setView('home')}
@@ -1450,6 +1550,29 @@ function AdminView({ setView }: { setView: (v: View) => void }) {
             Inicio
           </Button>
         </div>
+
+        {/* Theme Color Picker */}
+        <Card className="bg-[#1f1f1f] border-[#2a2a2a] mb-6">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3 flex-wrap">
+              <span className="text-sm font-medium text-[#a0a0a0]">Color del tema:</span>
+              {themePresets.map((preset) => (
+                <button
+                  key={preset.name}
+                  onClick={() => setTheme(preset)}
+                  className={`w-8 h-8 rounded-full border-2 transition-all hover:scale-110 ${
+                    theme.primary === preset.primary
+                      ? 'border-white scale-110 shadow-lg'
+                      : 'border-transparent'
+                  }`}
+                  style={{ backgroundColor: preset.primary }}
+                  title={preset.name}
+                />
+              ))}
+              <span className="text-xs text-[#3a3a3a] ml-2">{theme.name}</span>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 mb-6">
@@ -1861,6 +1984,7 @@ function AdminView({ setView }: { setView: (v: View) => void }) {
 // ==================== MAIN PAGE ====================
 export default function Home() {
   const [currentView, setCurrentView] = useState<View>('home')
+  const { theme, setTheme } = useThemeColor()
 
   return (
     <div className="min-h-screen flex flex-col bg-[#0a0a0a]">
@@ -1897,7 +2021,7 @@ export default function Home() {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.3 }}
             >
-              <AdminView setView={setCurrentView} />
+              <AdminView setView={setCurrentView} theme={theme} setTheme={setTheme} />
             </motion.div>
           )}
         </AnimatePresence>

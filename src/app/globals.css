@@ -79,6 +79,9 @@
   --sidebar-accent-foreground: #f5f5f5;
   --sidebar-border: #2a2a2a;
   --sidebar-ring: #d4a039;
+  --theme-primary: #d4a039;
+  --theme-primary-light: #e8b94a;
+  --theme-primary-dark: #b8882e;
 }
 
 @layer base {
@@ -111,7 +114,7 @@
 
 /* Gold gradient text */
 .gold-text {
-  background: linear-gradient(135deg, #d4a039, #e8b94a, #d4a039);
+  background: linear-gradient(135deg, var(--theme-primary, #d4a039), var(--theme-primary-light, #e8b94a), var(--theme-primary, #d4a039));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -124,7 +127,7 @@
 }
 
 .gold-shimmer {
-  background: linear-gradient(90deg, #d4a039 0%, #e8b94a 50%, #d4a039 100%);
+  background: linear-gradient(90deg, var(--theme-primary, #d4a039) 0%, var(--theme-primary-light, #e8b94a) 50%, var(--theme-primary, #d4a039) 100%);
   background-size: 200% 100%;
   animation: shimmer 3s ease-in-out infinite;
 }
@@ -134,6 +137,22 @@
   background-image: radial-gradient(circle at 1px 1px, rgba(212, 160, 57, 0.05) 1px, transparent 0);
   background-size: 40px 40px;
 }
+
+/* Dynamic theme color overrides - these are applied via JS theme switcher */
+/* When theme changes, the dynamic style tag overrides these */
+[data-theme-active] .theme-bg { background-color: var(--theme-primary) !important; }
+[data-theme-active] .theme-text { color: var(--theme-primary) !important; }
+[data-theme-active] .theme-border { border-color: var(--theme-primary) !important; }
+[data-theme-active] .theme-bg-light { background-color: var(--theme-primary-light) !important; }
+[data-theme-active] .theme-bg-dark { background-color: var(--theme-primary-dark) !important; }
+[data-theme-active] .theme-gradient {
+  background: linear-gradient(to right, var(--theme-primary), var(--theme-primary-dark)) !important;
+}
+[data-theme-active] .theme-gradient-r {
+  background: linear-gradient(to right, var(--theme-primary), var(--theme-primary-dark)) !important;
+}
+[data-theme-active] .theme-shadow { box-shadow: 0 0 15px color-mix(in srgb, var(--theme-primary) 20%, transparent) !important; }
+[data-theme-active] .theme-ring:focus { --tw-ring-color: var(--theme-primary) !important; }
 
 /* Fade in animation */
 @keyframes fadeInUp {
