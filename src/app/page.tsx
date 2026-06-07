@@ -1369,10 +1369,10 @@ function AdminView({ setView }: { setView: (v: View) => void }) {
   const pendingCount = appointments.filter((a) => a.status === 'pending').length
   const completedCount = appointments.filter((a) => a.status === 'completed').length
   const todayRevenue = todayAppointments
-    .filter((a) => a.status !== 'cancelled')
+    .filter((a) => a.status === 'completed')
     .reduce((sum, a) => sum + a.totalPrice, 0)
   const monthlyRevenue = monthAppointments
-    .filter((a) => a.status !== 'cancelled')
+    .filter((a) => a.status === 'completed')
     .reduce((sum, a) => sum + a.totalPrice, 0)
 
   // Auth screen
