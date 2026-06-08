@@ -50,9 +50,9 @@ export async function POST(request: NextRequest) {
     } = body
 
     // Validate required fields
-    if (!customerName || !customerPhone || !customerEmail || !date || !time || !serviceIds?.length) {
+    if (!customerName || !customerPhone || !date || !time || !serviceIds?.length) {
       return NextResponse.json(
-        { error: 'Todos los campos son requeridos' },
+        { error: 'Nombre, teléfono, fecha, hora y servicios son requeridos' },
         { status: 400 }
       )
     }
@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
       data: {
         customerName,
         customerPhone,
-        customerEmail,
+        customerEmail: customerEmail || '',
         date,
         time,
         numberOfPeople: numberOfPeople || 1,

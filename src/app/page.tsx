@@ -6,7 +6,7 @@ import {
   Scissors, Phone, Mail, MapPin, Clock, Instagram, Facebook,
   ChevronRight, ChevronLeft, Calendar, Check, X, Menu,
   Shield, Users, DollarSign, TrendingUp, AlertCircle,
-  Trash2, Eye, UserPlus, ChevronDown, Star, Sparkles,
+  Trash2, UserPlus, ChevronDown, Star, Sparkles,
   MessageCircle, RotateCcw, Sun, Moon, Key, Lock, HelpCircle,
   ImagePlus
 } from 'lucide-react'
@@ -1265,7 +1265,7 @@ function BookingView({ setView }: { setView: (v: View) => void }) {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="email" className="text-[#f5f5f5] mb-2 block">Email *</Label>
+                    <Label htmlFor="email" className="text-[#f5f5f5] mb-2 block">Email <span className="text-[#3a3a3a] text-xs">(opcional)</span></Label>
                     <Input
                       id="email"
                       type="email"
@@ -1314,7 +1314,7 @@ function BookingView({ setView }: { setView: (v: View) => void }) {
                 </Button>
                 <Button
                   onClick={() => setStep('confirm')}
-                  disabled={!customerName || !customerPhone || !customerEmail}
+                  disabled={!customerName || !customerPhone}
                   className="flex-1 bg-gradient-to-r from-[#d4a039] to-[#b8882e] text-[#0a0a0a] font-bold disabled:opacity-50"
                 >
                   Continuar
@@ -1369,7 +1369,7 @@ function BookingView({ setView }: { setView: (v: View) => void }) {
                     <div className="space-y-1">
                       <p className="text-[#f5f5f5] text-sm">{customerName}</p>
                       <p className="text-[#a0a0a0] text-sm">{customerPhone}</p>
-                      <p className="text-[#a0a0a0] text-sm">{customerEmail}</p>
+                      {customerEmail && <p className="text-[#a0a0a0] text-sm">{customerEmail}</p>}
                       <p className="text-[#a0a0a0] text-sm">{numberOfPeople} {parseInt(numberOfPeople) === 1 ? 'persona' : 'personas'}</p>
                       {notes && <p className="text-[#a0a0a0] text-sm italic">Nota: {notes}</p>}
                     </div>
@@ -2092,7 +2092,11 @@ function AdminView({ setView }: { setView: (v: View) => void }) {
                 ) : (
                   <div className="divide-y divide-[#2a2a2a]">
                     {appointments.slice(0, 5).map((apt) => (
-                      <div key={apt.id} className="p-4 hover:bg-[#2a2a2a]/30 transition-colors">
+                      <div
+                        key={apt.id}
+                        className="p-4 hover:bg-[#2a2a2a]/30 transition-colors cursor-pointer"
+                        onClick={() => { setSelectedAppointment(apt); setDetailOpen(true) }}
+                      >
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
@@ -2341,7 +2345,8 @@ function AdminView({ setView }: { setView: (v: View) => void }) {
                   {appointments.map((apt) => (
                     <div
                       key={apt.id}
-                      className="p-4 hover:bg-[#2a2a2a]/30 transition-colors"
+                      className="p-4 hover:bg-[#2a2a2a]/30 transition-colors cursor-pointer"
+                      onClick={() => { setSelectedAppointment(apt); setDetailOpen(true) }}
                     >
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div className="flex-1 min-w-0">
@@ -2367,162 +2372,10 @@ function AdminView({ setView }: { setView: (v: View) => void }) {
                             {apt.services.map((s) => s.service.name).join(', ')}
                           </div>
                         </div>
-                        <div className="flex items-center gap-2 shrink-0">
+                        <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
                           <span className="text-[#d4a039] font-bold text-sm">{formatPrice(apt.totalPrice)}</span>
-                          <Dialog open={detailOpen && selectedAppointment?.id === apt.id} onOpenChange={(open) => {
-                            if (!open) setDetailOpen(false)
-                          }}>
-                            <DialogTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-[#a0a0a0] hover:text-[#f5f5f5]"
-                                onClick={() => { setSelectedAppointment(apt); setDetailOpen(true) }}
-                              >
-                                <Eye className="w-4 h-4" />
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent className="bg-[#1f1f1f] border-[#2a2a2a] max-w-md">
-                              <DialogHeader>
-                                <DialogTitle className="text-[#f5f5f5]">Detalle de Cita</DialogTitle>
-                              </DialogHeader>
-                              {selectedAppointment && (
-                                <div className="space-y-4">
-                                  <div className="flex items-center gap-2">
-                                    <StatusBadge status={selectedAppointment.status} />
-                                  </div>
-                                  <div className="space-y-3 bg-[#0a0a0a] rounded-lg p-4">
-                                    <div className="flex justify-between">
-                                      <span className="text-[#a0a0a0] text-sm">Cliente</span>
-                                      <span className="text-[#f5f5f5] text-sm font-medium">{selectedAppointment.customerName}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                      <span className="text-[#a0a0a0] text-sm">Teléfono</span>
-                                      <span className="text-[#f5f5f5] text-sm font-medium">{selectedAppointment.customerPhone}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                      <span className="text-[#a0a0a0] text-sm">Email</span>
-                                      <span className="text-[#f5f5f5] text-sm font-medium break-all">{selectedAppointment.customerEmail}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                      <span className="text-[#a0a0a0] text-sm">Fecha</span>
-                                      <span className="text-[#f5f5f5] text-sm font-medium">{formatDate(selectedAppointment.date)}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                      <span className="text-[#a0a0a0] text-sm">Hora</span>
-                                      <span className="text-[#f5f5f5] text-sm font-medium">{formatTime(selectedAppointment.time)}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                      <span className="text-[#a0a0a0] text-sm">Personas</span>
-                                      <span className="text-[#f5f5f5] text-sm font-medium">{selectedAppointment.numberOfPeople}</span>
-                                    </div>
-                                    <Separator className="bg-[#2a2a2a]" />
-                                    <div>
-                                      <span className="text-[#a0a0a0] text-sm">Servicios</span>
-                                      <div className="mt-2 space-y-1">
-                                        {selectedAppointment.services.map((s) => (
-                                          <div key={s.id} className="flex justify-between">
-                                            <span className="text-[#f5f5f5] text-sm">{s.service.name}</span>
-                                            <span className="text-[#d4a039] text-sm">{formatPrice(s.price)}</span>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    </div>
-                                    <Separator className="bg-[#2a2a2a]" />
-                                    <div className="flex justify-between">
-                                      <span className="text-[#d4a039] font-bold">Total</span>
-                                      <span className="text-[#d4a039] font-bold">{formatPrice(selectedAppointment.totalPrice)}</span>
-                                    </div>
-                                    {selectedAppointment.notes && (
-                                      <>
-                                        <Separator className="bg-[#2a2a2a]" />
-                                        <div>
-                                          <span className="text-[#a0a0a0] text-sm">Notas</span>
-                                          <p className="text-[#f5f5f5] text-sm mt-1">{selectedAppointment.notes}</p>
-                                        </div>
-                                      </>
-                                    )}
-                                  </div>
-
-                                  {/* Actions */}
-                                  <div className="flex flex-wrap gap-2">
-                                    {selectedAppointment.status !== 'pending' && (
-                                      <Button
-                                        onClick={() => updateStatus(selectedAppointment.id, 'pending')}
-                                        size="sm"
-                                        variant="outline"
-                                        className="border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10"
-                                      >
-                                        <AlertCircle className="w-4 h-4 mr-1" />
-                                        Pendiente
-                                      </Button>
-                                    )}
-                                    {selectedAppointment.status !== 'confirmed' && (
-                                      <Button
-                                        onClick={() => updateStatus(selectedAppointment.id, 'confirmed')}
-                                        size="sm"
-                                        className="bg-green-600 hover:bg-green-700 text-white"
-                                      >
-                                        <Check className="w-4 h-4 mr-1" />
-                                        Confirmar
-                                      </Button>
-                                    )}
-                                    {selectedAppointment.status !== 'completed' && (
-                                      <Button
-                                        onClick={() => updateStatus(selectedAppointment.id, 'completed')}
-                                        size="sm"
-                                        className="bg-blue-600 hover:bg-blue-700 text-white"
-                                      >
-                                        <TrendingUp className="w-4 h-4 mr-1" />
-                                        Completar
-                                      </Button>
-                                    )}
-                                    {selectedAppointment.status !== 'cancelled' && (
-                                      <Button
-                                        onClick={() => updateStatus(selectedAppointment.id, 'cancelled')}
-                                        size="sm"
-                                        variant="outline"
-                                        className="border-red-500/30 text-red-400 hover:bg-red-500/10"
-                                      >
-                                        <X className="w-4 h-4 mr-1" />
-                                        Cancelar
-                                      </Button>
-                                    )}
-                                    <Button
-                                      onClick={() => sendWhatsApp(selectedAppointment)}
-                                      size="sm"
-                                      className="bg-green-500 hover:bg-green-600 text-white"
-                                    >
-                                      <MessageCircle className="w-4 h-4 mr-1" />
-                                      WhatsApp
-                                    </Button>
-                                    <Button
-                                      onClick={() => deleteAppointment(selectedAppointment.id)}
-                                      size="sm"
-                                      variant="outline"
-                                      className="border-[#2a2a2a] text-[#a0a0a0] hover:text-red-400 hover:border-red-500/30"
-                                    >
-                                      <Trash2 className="w-4 h-4 mr-1" />
-                                      Eliminar
-                                    </Button>
-                                  </div>
-                                </div>
-                              )}
-                            </DialogContent>
-                          </Dialog>
 
                           {/* Quick actions */}
-                          {apt.status !== 'pending' && (
-                            <Button
-                              onClick={() => updateStatus(apt.id, 'pending')}
-                              size="icon"
-                              variant="ghost"
-                              className="h-8 w-8 text-yellow-400 hover:text-yellow-300 hover:bg-yellow-500/10"
-                              title="Pendiente"
-                            >
-                              <AlertCircle className="w-4 h-4" />
-                            </Button>
-                          )}
                           {apt.status !== 'confirmed' && (
                             <Button
                               onClick={() => updateStatus(apt.id, 'confirmed')}
@@ -2574,6 +2427,139 @@ function AdminView({ setView }: { setView: (v: View) => void }) {
             )}
           </CardContent>
         </Card>
+
+        {/* Appointment Detail Dialog (shared for both dashboard and appointments tabs) */}
+        <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
+          <DialogContent className="bg-[#1f1f1f] border-[#2a2a2a] max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-[#f5f5f5]">Detalle de Cita</DialogTitle>
+            </DialogHeader>
+            {selectedAppointment && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <StatusBadge status={selectedAppointment.status} />
+                </div>
+                <div className="space-y-3 bg-[#0a0a0a] rounded-lg p-4">
+                  <div className="flex justify-between">
+                    <span className="text-[#a0a0a0] text-sm">Cliente</span>
+                    <span className="text-[#f5f5f5] text-sm font-medium">{selectedAppointment.customerName}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-[#a0a0a0] text-sm">Teléfono</span>
+                    <span className="text-[#f5f5f5] text-sm font-medium">{selectedAppointment.customerPhone}</span>
+                  </div>
+                  {selectedAppointment.customerEmail && (
+                    <div className="flex justify-between">
+                      <span className="text-[#a0a0a0] text-sm">Email</span>
+                      <span className="text-[#f5f5f5] text-sm font-medium break-all">{selectedAppointment.customerEmail}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between">
+                    <span className="text-[#a0a0a0] text-sm">Fecha</span>
+                    <span className="text-[#f5f5f5] text-sm font-medium">{formatDate(selectedAppointment.date)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-[#a0a0a0] text-sm">Hora</span>
+                    <span className="text-[#f5f5f5] text-sm font-medium">{formatTime(selectedAppointment.time)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-[#a0a0a0] text-sm">Personas</span>
+                    <span className="text-[#f5f5f5] text-sm font-medium">{selectedAppointment.numberOfPeople}</span>
+                  </div>
+                  <Separator className="bg-[#2a2a2a]" />
+                  <div>
+                    <span className="text-[#a0a0a0] text-sm">Servicios</span>
+                    <div className="mt-2 space-y-1">
+                      {selectedAppointment.services.map((s) => (
+                        <div key={s.id} className="flex justify-between">
+                          <span className="text-[#f5f5f5] text-sm">{s.service.name}</span>
+                          <span className="text-[#d4a039] text-sm">{formatPrice(s.price)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <Separator className="bg-[#2a2a2a]" />
+                  <div className="flex justify-between">
+                    <span className="text-[#d4a039] font-bold">Total</span>
+                    <span className="text-[#d4a039] font-bold">{formatPrice(selectedAppointment.totalPrice)}</span>
+                  </div>
+                  {selectedAppointment.notes && (
+                    <>
+                      <Separator className="bg-[#2a2a2a]" />
+                      <div>
+                        <span className="text-[#a0a0a0] text-sm">Notas</span>
+                        <p className="text-[#f5f5f5] text-sm mt-1">{selectedAppointment.notes}</p>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* Actions */}
+                <div className="flex flex-wrap gap-2">
+                  {selectedAppointment.status !== 'pending' && (
+                    <Button
+                      onClick={() => updateStatus(selectedAppointment.id, 'pending')}
+                      size="sm"
+                      variant="outline"
+                      className="border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10"
+                    >
+                      <AlertCircle className="w-4 h-4 mr-1" />
+                      Pendiente
+                    </Button>
+                  )}
+                  {selectedAppointment.status !== 'confirmed' && (
+                    <Button
+                      onClick={() => updateStatus(selectedAppointment.id, 'confirmed')}
+                      size="sm"
+                      className="bg-green-600 hover:bg-green-700 text-white"
+                    >
+                      <Check className="w-4 h-4 mr-1" />
+                      Confirmar
+                    </Button>
+                  )}
+                  {selectedAppointment.status !== 'completed' && (
+                    <Button
+                      onClick={() => updateStatus(selectedAppointment.id, 'completed')}
+                      size="sm"
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      <TrendingUp className="w-4 h-4 mr-1" />
+                      Completar
+                    </Button>
+                  )}
+                  {selectedAppointment.status !== 'cancelled' && (
+                    <Button
+                      onClick={() => updateStatus(selectedAppointment.id, 'cancelled')}
+                      size="sm"
+                      variant="outline"
+                      className="border-red-500/30 text-red-400 hover:bg-red-500/10"
+                    >
+                      <X className="w-4 h-4 mr-1" />
+                      Cancelar
+                    </Button>
+                  )}
+                  <Button
+                    onClick={() => sendWhatsApp(selectedAppointment)}
+                    size="sm"
+                    className="bg-green-500 hover:bg-green-600 text-white"
+                  >
+                    <MessageCircle className="w-4 h-4 mr-1" />
+                    WhatsApp
+                  </Button>
+                  <Button
+                    onClick={() => deleteAppointment(selectedAppointment.id)}
+                    size="sm"
+                    variant="outline"
+                    className="border-[#2a2a2a] text-[#a0a0a0] hover:text-red-400 hover:border-red-500/30"
+                  >
+                    <Trash2 className="w-4 h-4 mr-1" />
+                    Eliminar
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
           </>
         )}
       </div>
