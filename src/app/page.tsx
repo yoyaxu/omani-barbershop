@@ -7,7 +7,8 @@ import {
   ChevronRight, ChevronLeft, Calendar, Check, X, Menu,
   Shield, Users, DollarSign, TrendingUp, AlertCircle,
   Trash2, Eye, UserPlus, ChevronDown, Star, Sparkles,
-  MessageCircle, RotateCcw, Sun, Moon, Key, Lock, HelpCircle
+  MessageCircle, RotateCcw, Sun, Moon, Key, Lock, HelpCircle,
+  ImagePlus, ExternalLink
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -330,6 +331,9 @@ function Header({ currentView, setView, mode, toggleMode }: { currentView: View;
 function HomeView({ setView }: { setView: (v: View) => void }) {
   const [services, setServices] = useState<Service[]>([])
   const [servicesLoaded, setServicesLoaded] = useState(false)
+  const [galleryImages, setGalleryImages] = useState<string[]>([])
+  const [galleryMode, setGalleryMode] = useState<'manual' | 'widget'>('manual')
+  const [instagramWidget, setInstagramWidget] = useState<string>('')
 
   useEffect(() => {
     fetch('/api/services')
@@ -339,6 +343,23 @@ function HomeView({ setView }: { setView: (v: View) => void }) {
         setServicesLoaded(true)
       })
       .catch(() => setServicesLoaded(true))
+  }, [])
+
+  // Fetch site settings for gallery
+  useEffect(() => {
+    fetch('/api/settings')
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.galleryMode) setGalleryMode(data.galleryMode)
+        if (data.instagramWidget) setInstagramWidget(data.instagramWidget)
+        if (data.galleryImages) {
+          try {
+            const imgs = typeof data.galleryImages === 'string' ? JSON.parse(data.galleryImages) : data.galleryImages
+            if (Array.isArray(imgs) && imgs.length > 0) setGalleryImages(imgs)
+          } catch { /* use defaults */ }
+        }
+      })
+      .catch(() => {})
   }, [])
 
   // Seed on first load if no services
@@ -660,30 +681,34 @@ function HomeView({ setView }: { setView: (v: View) => void }) {
             </a>
           </motion.div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
-            {['/instagram/insta1.png', '/instagram/insta2.png', '/instagram/insta3.png', '/instagram/insta4.png', '/instagram/insta5.png', '/instagram/insta6.png'].map((src, i) => (
-              <motion.a
-                key={i}
-                href="https://instagram.com/omani_barbershop"
-                target="_blank"
-                rel="noopener noreferrer"
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.4, delay: i * 0.1 }}
-                className="relative group overflow-hidden rounded-xl aspect-square cursor-pointer"
-              >
-                <img
-                  src={src}
-                  alt={`Omani Barbershop - ${i + 1}`}
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                />
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all duration-300 flex items-center justify-center">
-                  <Instagram className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                </div>
-              </motion.a>
-            ))}
-          </div>
+          {galleryMode === 'widget' && instagramWidget ? (
+            <div dangerouslySetInnerHTML={{ __html: instagramWidget }} />
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
+              {(galleryImages.length > 0 ? galleryImages : ['/instagram/insta1.png', '/instagram/insta2.png', '/instagram/insta3.png', '/instagram/insta4.png', '/instagram/insta5.png', '/instagram/insta6.png']).map((src, i) => (
+                <motion.a
+                  key={i}
+                  href="https://instagram.com/omani_barbershop"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.4, delay: i * 0.1 }}
+                  className="relative group overflow-hidden rounded-xl aspect-square cursor-pointer"
+                >
+                  <img
+                    src={src}
+                    alt={`Omani Barbershop - ${i + 1}`}
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all duration-300 flex items-center justify-center">
+                    <Instagram className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  </div>
+                </motion.a>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
@@ -1434,6 +1459,14 @@ function AdminView({ setView }: { setView: (v: View) => void }) {
   const [confirmNewPassword, setConfirmNewPassword] = useState('')
   const [changePasswordLoading, setChangePasswordLoading] = useState(false)
 
+  // Instagram gallery management state
+  const [galleryMode, setGalleryMode] = useState<'manual' | 'widget'>('manual')
+  const [galleryImages, setGalleryImages] = useState<string[]>([])
+  const [newImageUrl, setNewImageUrl] = useState('')
+  const [instagramWidget, setInstagramWidget] = useState('')
+  const [settingsLoaded, setSettingsLoaded] = useState(false)
+  const [savingSettings, setSavingSettings] = useState(false)
+
   const fetchAppointments = useCallback(async () => {
     try {
       const params = new URLSearchParams()
@@ -1453,6 +1486,21 @@ function AdminView({ setView }: { setView: (v: View) => void }) {
   useEffect(() => {
     if (isAuthenticated) {
       fetchAppointments()
+      // Fetch site settings
+      fetch('/api/settings')
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.galleryMode) setGalleryMode(data.galleryMode as 'manual' | 'widget')
+          if (data.instagramWidget) setInstagramWidget(data.instagramWidget)
+          if (data.galleryImages) {
+            try {
+              const imgs = typeof data.galleryImages === 'string' ? JSON.parse(data.galleryImages) : data.galleryImages
+              if (Array.isArray(imgs)) setGalleryImages(imgs)
+            } catch { /* ignore */ }
+          }
+          setSettingsLoaded(true)
+        })
+        .catch(() => setSettingsLoaded(true))
     }
   }, [isAuthenticated, fetchAppointments])
 
@@ -1586,6 +1634,40 @@ function AdminView({ setView }: { setView: (v: View) => void }) {
     } catch {
       toast.error('Error al eliminar la cita')
     }
+  }
+
+  const saveSettings = async () => {
+    setSavingSettings(true)
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          galleryMode,
+          galleryImages,
+          instagramWidget: galleryMode === 'widget' ? instagramWidget : null,
+        }),
+      })
+      if (res.ok) {
+        toast.success('Configuración guardada')
+      } else {
+        toast.error('Error al guardar configuración')
+      }
+    } catch {
+      toast.error('Error de conexión')
+    } finally {
+      setSavingSettings(false)
+    }
+  }
+
+  const addGalleryImage = () => {
+    if (!newImageUrl.trim()) return
+    setGalleryImages([...galleryImages, newImageUrl.trim()])
+    setNewImageUrl('')
+  }
+
+  const removeGalleryImage = (index: number) => {
+    setGalleryImages(galleryImages.filter((_, i) => i !== index))
   }
 
   // Stats
@@ -1928,6 +2010,135 @@ function AdminView({ setView }: { setView: (v: View) => void }) {
             </CardContent>
           </Card>
         </div>
+
+        {/* Instagram Gallery Settings */}
+        <Card className="bg-[#1f1f1f] border-[#2a2a2a] mb-6">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-[#f5f5f5] text-lg flex items-center gap-2">
+                <Instagram className="w-5 h-5 text-[#d4a039]" />
+                Galería de Instagram
+              </CardTitle>
+              <Button
+                onClick={saveSettings}
+                disabled={savingSettings}
+                size="sm"
+                className="bg-gradient-to-r from-[#d4a039] to-[#b8882e] text-[#0a0a0a] font-bold"
+              >
+                {savingSettings ? 'Guardando...' : 'Guardar'}
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Mode selector */}
+            <div>
+              <Label className="text-[#a0a0a0] text-sm mb-2 block">Modo de galería</Label>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setGalleryMode('manual')}
+                  className={`flex-1 p-3 rounded-lg border text-sm font-medium transition-all ${
+                    galleryMode === 'manual'
+                      ? 'border-[#d4a039] bg-[#d4a039]/10 text-[#d4a039]'
+                      : 'border-[#2a2a2a] bg-[#0a0a0a] text-[#a0a0a0] hover:border-[#3a3a3a]'
+                  }`}
+                >
+                  <ImagePlus className="w-4 h-4 mx-auto mb-1" />
+                  Imágenes manuales
+                </button>
+                <button
+                  onClick={() => setGalleryMode('widget')}
+                  className={`flex-1 p-3 rounded-lg border text-sm font-medium transition-all ${
+                    galleryMode === 'widget'
+                      ? 'border-[#d4a039] bg-[#d4a039]/10 text-[#d4a039]'
+                      : 'border-[#2a2a2a] bg-[#0a0a0a] text-[#a0a0a0] hover:border-[#3a3a3a]'
+                  }`}
+                >
+                  <ExternalLink className="w-4 h-4 mx-auto mb-1" />
+                  Widget automático
+                </button>
+              </div>
+            </div>
+
+            {galleryMode === 'manual' ? (
+              <div className="space-y-3">
+                <p className="text-[#a0a0a0] text-xs">
+                  Agrega URLs de imágenes para la galería. Puedes subir imágenes a servicios como imgur.com o usar URLs directas.
+                </p>
+                <div className="flex gap-2">
+                  <Input
+                    value={newImageUrl}
+                    onChange={(e) => setNewImageUrl(e.target.value)}
+                    placeholder="https://ejemplo.com/imagen.jpg"
+                    className="bg-[#0a0a0a] border-[#2a2a2a] text-[#f5f5f5] placeholder:text-[#3a3a3a] focus:border-[#d4a039]"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') addGalleryImage()
+                    }}
+                  />
+                  <Button
+                    onClick={addGalleryImage}
+                    size="icon"
+                    className="bg-[#d4a039] text-[#0a0a0a] hover:bg-[#b8882e] shrink-0"
+                  >
+                    <ImagePlus className="w-4 h-4" />
+                  </Button>
+                </div>
+                {galleryImages.length > 0 ? (
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
+                    {galleryImages.map((img, i) => (
+                      <div key={i} className="relative group aspect-square rounded-lg overflow-hidden border border-[#2a2a2a]">
+                        <img
+                          src={img}
+                          alt={`Galería ${i + 1}`}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = '/instagram/insta1.png'
+                          }}
+                        />
+                        <button
+                          onClick={() => removeGalleryImage(i)}
+                          className="absolute top-1 right-1 w-5 h-5 bg-red-500/80 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="w-3 h-3 text-white" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-[#3a3a3a] text-sm text-center py-4">
+                    No hay imágenes. Agrega URLs arriba o las imágenes por defecto se mostrarán.
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="bg-[#0a0a0a] rounded-lg p-3 border border-[#2a2a2a]">
+                  <p className="text-[#a0a0a0] text-xs mb-2">
+                    <strong className="text-[#f5f5f5]">¿Cómo configurar el widget automático?</strong>
+                  </p>
+                  <ol className="text-[#a0a0a0] text-xs space-y-1 list-decimal list-inside">
+                    <li>Ve a <a href="https://elfsight.com/instagram-feed-instashow/" target="_blank" rel="noopener noreferrer" className="text-[#d4a039] hover:underline">elfsight.com</a> o <a href="https://behold.so" target="_blank" rel="noopener noreferrer" className="text-[#d4a039] hover:underline">behold.so</a> (ambos tienen plan gratis)</li>
+                    <li>Crea una cuenta y conecta @omani_barbershop</li>
+                    <li>Personaliza el widget y copia el código HTML</li>
+                    <li>Pégalo abajo y guarda</li>
+                  </ol>
+                </div>
+                <Textarea
+                  value={instagramWidget}
+                  onChange={(e) => setInstagramWidget(e.target.value)}
+                  placeholder='Pega aquí el código del widget de Instagram, por ejemplo:&#10;<script src="https://w.behold.so/widget.js" data-widget-id="xxx"></script>&#10;<div id="behold-widget"></div>'
+                  className="bg-[#0a0a0a] border-[#2a2a2a] text-[#f5f5f5] placeholder:text-[#3a3a3a] focus:border-[#d4a039] min-h-[100px] font-mono text-xs"
+                  rows={5}
+                />
+                {instagramWidget && (
+                  <div className="border border-[#2a2a2a] rounded-lg p-3">
+                    <p className="text-[#a0a0a0] text-xs mb-2">Vista previa del widget:</p>
+                    <div className="overflow-hidden" dangerouslySetInnerHTML={{ __html: instagramWidget }} />
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Filters */}
         <Card className="bg-[#1f1f1f] border-[#2a2a2a] mb-6">

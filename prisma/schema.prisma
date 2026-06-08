@@ -60,3 +60,12 @@ model AdminSettings {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+model SiteSettings {
+  id               String   @id @default("site")
+  instagramWidget  String?  // Elfsight/Behold embed code for auto Instagram feed
+  galleryMode      String   @default("manual") // "manual" or "widget"
+  galleryImages    String   @default("[]") // JSON array of image URLs
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
