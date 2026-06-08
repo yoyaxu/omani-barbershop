@@ -1458,6 +1458,10 @@ function AdminView({ setView }: { setView: (v: View) => void }) {
   const [settingsLoaded, setSettingsLoaded] = useState(false)
   const [savingSettings, setSavingSettings] = useState(false)
 
+  // Admin tab state
+  type AdminTab = 'dashboard' | 'appointments' | 'gallery'
+  const [adminTab, setAdminTab] = useState<AdminTab>('dashboard')
+
   const fetchAppointments = useCallback(async () => {
     try {
       const params = new URLSearchParams()
@@ -1964,189 +1968,279 @@ function AdminView({ setView }: { setView: (v: View) => void }) {
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 mb-6">
-          <Card className="bg-[#1f1f1f] border-[#2a2a2a]">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-[#d4a039]/10 flex items-center justify-center">
-                  <Calendar className="w-5 h-5 text-[#d4a039]" />
-                </div>
-                <div>
-                  <p className="text-xs text-[#a0a0a0]">Citas hoy</p>
-                  <p className="text-xl font-bold text-[#f5f5f5]">{todayAppointments.length}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-[#1f1f1f] border-[#2a2a2a]">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-yellow-500/10 flex items-center justify-center">
-                  <AlertCircle className="w-5 h-5 text-yellow-400" />
-                </div>
-                <div>
-                  <p className="text-xs text-[#a0a0a0]">Pendientes</p>
-                  <p className="text-xl font-bold text-[#f5f5f5]">{pendingCount}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-[#1f1f1f] border-[#2a2a2a]">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center">
-                  <Users className="w-5 h-5 text-green-400" />
-                </div>
-                <div>
-                  <p className="text-xs text-[#a0a0a0]">Completadas</p>
-                  <p className="text-xl font-bold text-[#f5f5f5]">{completedCount}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-[#1f1f1f] border-[#2a2a2a]">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-[#d4a039]/10 flex items-center justify-center">
-                  <DollarSign className="w-5 h-5 text-[#d4a039]" />
-                </div>
-                <div>
-                  <p className="text-xs text-[#a0a0a0]">Ingresos hoy</p>
-                  <p className="text-xl font-bold text-[#d4a039]">{formatPrice(todayRevenue)}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-[#1f1f1f] border-[#2a2a2a]">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                  <TrendingUp className="w-5 h-5 text-emerald-400" />
-                </div>
-                <div>
-                  <p className="text-xs text-[#a0a0a0]">Ingresos del mes</p>
-                  <p className="text-xl font-bold text-emerald-400">{formatPrice(monthlyRevenue)}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        {/* Tabs */}
+        <div className="flex gap-1 mb-6 border-b border-[#2a2a2a]">
+          {([
+            { key: 'dashboard' as AdminTab, label: 'Dashboard', icon: TrendingUp },
+            { key: 'appointments' as AdminTab, label: 'Citas', icon: Calendar },
+            { key: 'gallery' as AdminTab, label: 'Galería', icon: Instagram },
+          ]).map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setAdminTab(tab.key)}
+              className={`flex items-center gap-2 px-4 sm:px-6 py-3 text-sm font-medium transition-all border-b-2 -mb-px ${
+                adminTab === tab.key
+                  ? 'text-[#d4a039] border-[#d4a039]'
+                  : 'text-[#a0a0a0] border-transparent hover:text-[#f5f5f5] hover:border-[#3a3a3a]'
+              }`}
+            >
+              <tab.icon className="w-4 h-4" />
+              <span className="hidden sm:inline">{tab.label}</span>
+            </button>
+          ))}
         </div>
 
-        {/* Instagram Gallery Settings */}
-        <Card className="bg-[#1f1f1f] border-[#2a2a2a] mb-6">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-[#f5f5f5] text-lg flex items-center gap-2">
-                <Instagram className="w-5 h-5 text-[#d4a039]" />
-                Galería de Instagram
-              </CardTitle>
-              <Button
-                onClick={saveSettings}
-                disabled={savingSettings}
-                size="sm"
-                className="bg-gradient-to-r from-[#d4a039] to-[#b8882e] text-[#0a0a0a] font-bold"
-              >
-                {savingSettings ? 'Guardando...' : 'Guardar'}
-              </Button>
+        {/* ==================== DASHBOARD TAB ==================== */}
+        {adminTab === 'dashboard' && (
+          <div className="space-y-6">
+            {/* Stats */}
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
+              <Card className="bg-[#1f1f1f] border-[#2a2a2a]">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-[#d4a039]/10 flex items-center justify-center">
+                      <Calendar className="w-5 h-5 text-[#d4a039]" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-[#a0a0a0]">Citas hoy</p>
+                      <p className="text-xl font-bold text-[#f5f5f5]">{todayAppointments.length}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="bg-[#1f1f1f] border-[#2a2a2a]">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-yellow-500/10 flex items-center justify-center">
+                      <AlertCircle className="w-5 h-5 text-yellow-400" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-[#a0a0a0]">Pendientes</p>
+                      <p className="text-xl font-bold text-[#f5f5f5]">{pendingCount}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="bg-[#1f1f1f] border-[#2a2a2a]">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center">
+                      <Users className="w-5 h-5 text-green-400" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-[#a0a0a0]">Completadas</p>
+                      <p className="text-xl font-bold text-[#f5f5f5]">{completedCount}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="bg-[#1f1f1f] border-[#2a2a2a]">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-[#d4a039]/10 flex items-center justify-center">
+                      <DollarSign className="w-5 h-5 text-[#d4a039]" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-[#a0a0a0]">Ingresos hoy</p>
+                      <p className="text-xl font-bold text-[#d4a039]">{formatPrice(todayRevenue)}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="bg-[#1f1f1f] border-[#2a2a2a]">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                      <TrendingUp className="w-5 h-5 text-emerald-400" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-[#a0a0a0]">Ingresos del mes</p>
+                      <p className="text-xl font-bold text-emerald-400">{formatPrice(monthlyRevenue)}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Upload area */}
-            <div>
-              <Label className="text-[#a0a0a0] text-sm mb-2 block">Subir fotos</Label>
-              <label className={`flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-6 cursor-pointer transition-all ${
-                uploadingImage
-                  ? 'border-[#d4a039] bg-[#d4a039]/5'
-                  : 'border-[#2a2a2a] hover:border-[#d4a039]/50 hover:bg-[#d4a039]/5'
-              }`}>
-                {uploadingImage ? (
-                  <div className="flex flex-col items-center gap-2">
-                    <div className="w-8 h-8 border-2 border-[#d4a039] border-t-transparent rounded-full animate-spin" />
-                    <span className="text-[#a0a0a0] text-sm">Subiendo...</span>
+
+            {/* Recent appointments preview */}
+            <Card className="bg-[#1f1f1f] border-[#2a2a2a]">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-[#f5f5f5] text-lg">Citas Recientes</CardTitle>
+                  <Button
+                    onClick={() => setAdminTab('appointments')}
+                    variant="outline"
+                    size="sm"
+                    className="border-[#2a2a2a] text-[#a0a0a0] hover:text-[#d4a039] hover:border-[#d4a039]/50"
+                  >
+                    Ver todas
+                    <ChevronRight className="w-4 h-4 ml-1" />
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="p-0">
+                {loading ? (
+                  <div className="p-8 text-center text-[#a0a0a0]">
+                    <div className="animate-spin w-6 h-6 border-2 border-[#d4a039] border-t-transparent rounded-full mx-auto mb-2" />
+                    Cargando...
+                  </div>
+                ) : appointments.length === 0 ? (
+                  <div className="p-8 text-center text-[#a0a0a0]">
+                    <Calendar className="w-10 h-10 mx-auto mb-2 opacity-30" />
+                    <p>No hay citas registradas</p>
                   </div>
                 ) : (
-                  <>
-                    <ImagePlus className="w-8 h-8 text-[#3a3a3a] mb-2" />
-                    <span className="text-[#a0a0a0] text-sm font-medium">Haz clic para subir fotos</span>
-                    <span className="text-[#3a3a3a] text-xs mt-1">JPG, PNG, GIF o WebP (máx. 5MB)</span>
-                  </>
+                  <div className="divide-y divide-[#2a2a2a]">
+                    {appointments.slice(0, 5).map((apt) => (
+                      <div key={apt.id} className="p-4 hover:bg-[#2a2a2a]/30 transition-colors">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <p className="font-bold text-[#f5f5f5] text-sm truncate">{apt.customerName}</p>
+                              <StatusBadge status={apt.status} />
+                            </div>
+                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#a0a0a0]">
+                              <span className="flex items-center gap-1">
+                                <Calendar className="w-3 h-3" />
+                                {apt.date}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                {formatTime(apt.time)}
+                              </span>
+                            </div>
+                          </div>
+                          <span className="text-[#d4a039] font-bold text-sm">{formatPrice(apt.totalPrice)}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 )}
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/gif,image/webp"
-                  multiple
-                  onChange={handleFileUpload}
-                  className="hidden"
-                  disabled={uploadingImage}
-                />
-              </label>
-            </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
-            {/* URL input fallback */}
-            <div>
-              <Label className="text-[#a0a0a0] text-xs mb-1 block">O pega una URL de imagen</Label>
-              <div className="flex gap-2">
-                <Input
-                  value={newImageUrl}
-                  onChange={(e) => setNewImageUrl(e.target.value)}
-                  placeholder="https://ejemplo.com/imagen.jpg"
-                  className="bg-[#0a0a0a] border-[#2a2a2a] text-[#f5f5f5] placeholder:text-[#3a3a3a] focus:border-[#d4a039]"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') addGalleryImage()
-                  }}
-                />
+        {/* ==================== GALLERY TAB ==================== */}
+        {adminTab === 'gallery' && (
+          <Card className="bg-[#1f1f1f] border-[#2a2a2a]">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-[#f5f5f5] text-lg flex items-center gap-2">
+                  <Instagram className="w-5 h-5 text-[#d4a039]" />
+                  Galería de Instagram
+                </CardTitle>
                 <Button
-                  onClick={addGalleryImage}
-                  size="icon"
-                  className="bg-[#d4a039] text-[#0a0a0a] hover:bg-[#b8882e] shrink-0"
+                  onClick={saveSettings}
+                  disabled={savingSettings}
+                  size="sm"
+                  className="bg-gradient-to-r from-[#d4a039] to-[#b8882e] text-[#0a0a0a] font-bold"
                 >
-                  <ImagePlus className="w-4 h-4" />
+                  {savingSettings ? 'Guardando...' : 'Guardar'}
                 </Button>
               </div>
-            </div>
-
-            {/* Image gallery grid */}
-            {galleryImages.length > 0 ? (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[#a0a0a0] text-xs">{galleryImages.length} imagen(es)</span>
-                  <button
-                    onClick={() => setGalleryImages([])}
-                    className="text-red-400 hover:text-red-300 text-xs transition-colors"
-                  >
-                    Eliminar todas
-                  </button>
-                </div>
-                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
-                  {galleryImages.map((img, i) => (
-                    <div key={img.substring(0, 50) + '-' + i} className="relative group aspect-square rounded-lg overflow-hidden border border-[#2a2a2a]">
-                      <img
-                        src={img}
-                        alt={`Galería ${i + 1}`}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = '/instagram/insta1.png'
-                        }}
-                      />
-                      <button
-                        onClick={() => removeGalleryImage(i)}
-                        className="absolute top-1 right-1 w-5 h-5 bg-red-500/80 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <X className="w-3 h-3 text-white" />
-                      </button>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Upload area */}
+              <div>
+                <Label className="text-[#a0a0a0] text-sm mb-2 block">Subir fotos</Label>
+                <label className={`flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-8 cursor-pointer transition-all ${
+                  uploadingImage
+                    ? 'border-[#d4a039] bg-[#d4a039]/5'
+                    : 'border-[#2a2a2a] hover:border-[#d4a039]/50 hover:bg-[#d4a039]/5'
+                }`}>
+                  {uploadingImage ? (
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="w-8 h-8 border-2 border-[#d4a039] border-t-transparent rounded-full animate-spin" />
+                      <span className="text-[#a0a0a0] text-sm">Subiendo...</span>
                     </div>
-                  ))}
+                  ) : (
+                    <>
+                      <ImagePlus className="w-10 h-10 text-[#3a3a3a] mb-3" />
+                      <span className="text-[#a0a0a0] text-sm font-medium">Haz clic o arrastra fotos aquí</span>
+                      <span className="text-[#3a3a3a] text-xs mt-1">JPG, PNG, GIF o WebP (máx. 5MB)</span>
+                    </>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif,image/webp"
+                    multiple
+                    onChange={handleFileUpload}
+                    className="hidden"
+                    disabled={uploadingImage}
+                  />
+                </label>
+              </div>
+
+              {/* URL input fallback */}
+              <div>
+                <Label className="text-[#a0a0a0] text-xs mb-1 block">O pega una URL de imagen</Label>
+                <div className="flex gap-2">
+                  <Input
+                    value={newImageUrl}
+                    onChange={(e) => setNewImageUrl(e.target.value)}
+                    placeholder="https://ejemplo.com/imagen.jpg"
+                    className="bg-[#0a0a0a] border-[#2a2a2a] text-[#f5f5f5] placeholder:text-[#3a3a3a] focus:border-[#d4a039]"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') addGalleryImage()
+                    }}
+                  />
+                  <Button
+                    onClick={addGalleryImage}
+                    size="icon"
+                    className="bg-[#d4a039] text-[#0a0a0a] hover:bg-[#b8882e] shrink-0"
+                  >
+                    <ImagePlus className="w-4 h-4" />
+                  </Button>
                 </div>
               </div>
-            ) : (
-              <p className="text-[#3a3a3a] text-sm text-center py-4">
-                No hay imágenes. Sube fotos arriba o las imágenes por defecto se mostrarán.
-              </p>
-            )}
-          </CardContent>
-        </Card>
 
+              {/* Image gallery grid */}
+              {galleryImages.length > 0 ? (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[#a0a0a0] text-xs">{galleryImages.length} imagen(es)</span>
+                    <button
+                      onClick={() => setGalleryImages([])}
+                      className="text-red-400 hover:text-red-300 text-xs transition-colors flex items-center gap-1"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                      Eliminar todas
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                    {galleryImages.map((img, i) => (
+                      <div key={img.substring(0, 50) + '-' + i} className="relative group aspect-square rounded-lg overflow-hidden border border-[#2a2a2a]">
+                        <img
+                          src={img}
+                          alt={`Galería ${i + 1}`}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = '/instagram/insta1.png'
+                          }}
+                        />
+                        <button
+                          onClick={() => removeGalleryImage(i)}
+                          className="absolute top-1 right-1 w-6 h-6 bg-red-500/80 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="w-3 h-3 text-white" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-[#3a3a3a] text-sm text-center py-8">
+                  No hay imágenes. Sube fotos arriba o las imágenes por defecto se mostrarán en la página principal.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* ==================== APPOINTMENTS TAB ==================== */}
+        {adminTab === 'appointments' && (
+          <>
         {/* Filters */}
         <Card className="bg-[#1f1f1f] border-[#2a2a2a] mb-6">
           <CardContent className="p-4">
@@ -2480,6 +2574,8 @@ function AdminView({ setView }: { setView: (v: View) => void }) {
             )}
           </CardContent>
         </Card>
+          </>
+        )}
       </div>
     </div>
   )
