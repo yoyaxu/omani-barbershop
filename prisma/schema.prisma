@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_UNPOOLED")
 }
 
 model Service {
@@ -23,20 +24,20 @@ model Service {
 }
 
 model Appointment {
-  id            String   @id @default(cuid())
-  customerName  String
-  customerPhone String
-  customerEmail String
-  date          String   // YYYY-MM-DD format
-  time          String   // HH:mm format
-  numberOfPeople Int     @default(1)
-  totalPrice    Int      // Total price in DOP
-  totalDuration Int      // Total duration in minutes
-  status        String   @default("pending") // pending, confirmed, completed, cancelled
-  notes         String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  services      AppointmentService[]
+  id             String   @id @default(cuid())
+  customerName   String
+  customerPhone  String
+  customerEmail  String
+  date           String   // YYYY-MM-DD format
+  time           String   // HH:mm format
+  numberOfPeople Int      @default(1)
+  totalPrice     Int      // Total price in DOP
+  totalDuration  Int      // Total duration in minutes
+  status         String   @default("pending") // pending, confirmed, completed, cancelled
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  services       AppointmentService[]
 }
 
 model AppointmentService {
@@ -49,4 +50,13 @@ model AppointmentService {
   createdAt     DateTime    @default(now())
 
   @@unique([appointmentId, serviceId])
+}
+
+model AdminSettings {
+  id        String   @id @default("admin")
+  password  String   // Hashed password
+  email     String   // Admin email for password recovery
+  phone     String   // Admin phone for WhatsApp recovery
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

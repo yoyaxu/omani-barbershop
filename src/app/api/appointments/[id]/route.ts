@@ -31,7 +31,8 @@ export async function PATCH(
     })
 
     return NextResponse.json(appointment)
-  } catch {
+  } catch (error) {
+    console.error('Error updating appointment:', error)
     return NextResponse.json(
       { error: 'Error al actualizar la cita' },
       { status: 500 }
@@ -56,7 +57,8 @@ export async function DELETE(
     })
 
     return NextResponse.json({ message: 'Cita eliminada' })
-  } catch {
+  } catch (error) {
+    console.error('Error deleting appointment:', error)
     return NextResponse.json(
       { error: 'Error al eliminar la cita' },
       { status: 500 }

@@ -7,7 +7,7 @@ import {
   ChevronRight, ChevronLeft, Calendar, Check, X, Menu,
   Shield, Users, DollarSign, TrendingUp, AlertCircle,
   Trash2, Eye, UserPlus, ChevronDown, Star, Sparkles,
-  MessageCircle, RotateCcw, Sun, Moon
+  MessageCircle, RotateCcw, Sun, Moon, Key, Lock, HelpCircle
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -1411,6 +1411,7 @@ function BookingView({ setView }: { setView: (v: View) => void }) {
 function AdminView({ setView }: { setView: (v: View) => void }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [password, setPassword] = useState('')
+  const [loginLoading, setLoginLoading] = useState(false)
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [loading, setLoading] = useState(true)
   const [filterDate, setFilterDate] = useState('')
@@ -1418,6 +1419,20 @@ function AdminView({ setView }: { setView: (v: View) => void }) {
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
   const [adminCalendarOpen, setAdminCalendarOpen] = useState(false)
+
+  // Forgot password state
+  const [showForgotPassword, setShowForgotPassword] = useState(false)
+  const [forgotEmail, setForgotEmail] = useState('')
+  const [forgotLoading, setForgotLoading] = useState(false)
+  const [resetCode, setResetCode] = useState('')
+  const [resetCodeShown, setResetCodeShown] = useState(false)
+
+  // Change password state
+  const [showChangePassword, setShowChangePassword] = useState(false)
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmNewPassword, setConfirmNewPassword] = useState('')
+  const [changePasswordLoading, setChangePasswordLoading] = useState(false)
 
   const fetchAppointments = useCallback(async () => {
     try {
@@ -1441,6 +1456,92 @@ function AdminView({ setView }: { setView: (v: View) => void }) {
     }
   }, [isAuthenticated, fetchAppointments])
 
+  const handleLogin = async () => {
+    setLoginLoading(true)
+    try {
+      const res = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      })
+      const data = await res.json()
+      if (res.ok && data.success) {
+        setIsAuthenticated(true)
+        toast.success('Sesión iniciada')
+      } else {
+        toast.error(data.error || 'Contraseña incorrecta')
+      }
+    } catch {
+      toast.error('Error de conexión')
+    } finally {
+      setLoginLoading(false)
+    }
+  }
+
+  const handleForgotPassword = async () => {
+    if (!forgotEmail) {
+      toast.error('Ingresa tu correo electrónico')
+      return
+    }
+    setForgotLoading(true)
+    try {
+      const res = await fetch('/api/admin/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: forgotEmail }),
+      })
+      const data = await res.json()
+      if (res.ok && data.success) {
+        setResetCode(data.resetCode)
+        setResetCodeShown(true)
+        toast.success('Código de recuperación generado')
+      } else {
+        toast.error(data.error || 'Error al procesar la solicitud')
+      }
+    } catch {
+      toast.error('Error de conexión')
+    } finally {
+      setForgotLoading(false)
+    }
+  }
+
+  const handleChangePassword = async () => {
+    if (!currentPassword || !newPassword || !confirmNewPassword) {
+      toast.error('Completa todos los campos')
+      return
+    }
+    if (newPassword.length < 6) {
+      toast.error('La nueva contraseña debe tener al menos 6 caracteres')
+      return
+    }
+    if (newPassword !== confirmNewPassword) {
+      toast.error('Las contraseñas no coinciden')
+      return
+    }
+    setChangePasswordLoading(true)
+    try {
+      const res = await fetch('/api/admin/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      })
+      const data = await res.json()
+      if (res.ok && data.success) {
+        toast.success('Contraseña actualizada exitosamente')
+        setShowChangePassword(false)
+        setCurrentPassword('')
+        setNewPassword('')
+        setConfirmNewPassword('')
+      } else {
+        toast.error(data.error || 'Error al cambiar la contraseña')
+      }
+    } catch {
+      toast.error('Error de conexión')
+    } finally {
+      setChangePasswordLoading(false)
+    }
+  }
+
   const updateStatus = async (id: string, status: string) => {
     try {
       const res = await fetch(`/api/appointments/${id}`, {
@@ -1456,7 +1557,6 @@ function AdminView({ setView }: { setView: (v: View) => void }) {
           pending: 'reactivada',
         }
         toast.success(`Cita ${statusLabels[status] || 'actualizada'}`)
-        // Update selectedAppointment if detail dialog is open
         if (selectedAppointment?.id === id) {
           setSelectedAppointment((prev) => prev ? { ...prev, status } : null)
         }
@@ -1503,6 +1603,95 @@ function AdminView({ setView }: { setView: (v: View) => void }) {
     .filter((a) => a.status === 'completed')
     .reduce((sum, a) => sum + a.totalPrice, 0)
 
+  // Forgot password screen
+  if (showForgotPassword && !isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 bg-[#0a0a0a]">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="max-w-sm w-full"
+        >
+          <Card className="bg-[#1f1f1f] border-[#2a2a2a]">
+            <CardContent className="p-6 sm:p-8">
+              <div className="text-center mb-6">
+                <div className="w-14 h-14 rounded-full bg-[#d4a039]/10 flex items-center justify-center mx-auto mb-4">
+                  <HelpCircle className="w-7 h-7 text-[#d4a039]" />
+                </div>
+                <h2 className="text-xl font-bold text-[#f5f5f5] mb-2">¿Olvidaste tu contraseña?</h2>
+                <p className="text-[#a0a0a0] text-sm">
+                  Ingresa el correo del administrador para generar un código de recuperación temporal.
+                </p>
+              </div>
+
+              {!resetCodeShown ? (
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-[#a0a0a0] text-sm mb-1 block">Correo electrónico</Label>
+                    <Input
+                      type="email"
+                      value={forgotEmail}
+                      onChange={(e) => setForgotEmail(e.target.value)}
+                      placeholder="abreuomani@gmail.com"
+                      className="bg-[#0a0a0a] border-[#2a2a2a] text-[#f5f5f5] placeholder:text-[#3a3a3a] focus:border-[#d4a039]"
+                    />
+                  </div>
+                  <Button
+                    onClick={handleForgotPassword}
+                    disabled={forgotLoading}
+                    className="w-full bg-gradient-to-r from-[#d4a039] to-[#b8882e] text-[#0a0a0a] font-bold"
+                  >
+                    {forgotLoading ? 'Procesando...' : 'Generar código de recuperación'}
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="bg-[#0a0a0a] rounded-lg p-4 border border-[#d4a039]/30">
+                    <p className="text-[#a0a0a0] text-sm mb-2">Tu código de recuperación temporal es:</p>
+                    <p className="text-2xl font-bold text-[#d4a039] tracking-widest text-center font-mono">
+                      {resetCode}
+                    </p>
+                    <p className="text-[#a0a0a0] text-xs mt-2">
+                      Usa este código como tu contraseña para iniciar sesión. Luego cámbiala inmediatamente.
+                    </p>
+                  </div>
+                  <Button
+                    onClick={() => {
+                      setShowForgotPassword(false)
+                      setResetCodeShown(false)
+                      setPassword('')
+                    }}
+                    className="w-full bg-gradient-to-r from-[#d4a039] to-[#b8882e] text-[#0a0a0a] font-bold"
+                  >
+                    Ir a iniciar sesión
+                  </Button>
+                </div>
+              )}
+
+              <div className="flex flex-col gap-2 mt-4">
+                <button
+                  onClick={() => {
+                    setShowForgotPassword(false)
+                    setResetCodeShown(false)
+                  }}
+                  className="text-sm text-[#a0a0a0] hover:text-[#d4a039] transition-colors"
+                >
+                  Volver al inicio de sesión
+                </button>
+                <button
+                  onClick={() => setView('home')}
+                  className="text-sm text-[#3a3a3a] hover:text-[#a0a0a0] transition-colors"
+                >
+                  Ir al inicio
+                </button>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
+    )
+  }
+
   // Auth screen
   if (!isAuthenticated) {
     return (
@@ -1525,30 +1714,31 @@ function AdminView({ setView }: { setView: (v: View) => void }) {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && password === 'aflow2024') {
-                    setIsAuthenticated(true)
-                  }
+                  if (e.key === 'Enter') handleLogin()
                 }}
                 placeholder="Contraseña"
                 className="bg-[#0a0a0a] border-[#2a2a2a] text-[#f5f5f5] placeholder:text-[#3a3a3a] focus:border-[#d4a039] mb-4"
               />
 
               <Button
-                onClick={() => {
-                  if (password === 'aflow2024') {
-                    setIsAuthenticated(true)
-                  } else {
-                    toast.error('Contraseña incorrecta')
-                  }
-                }}
+                onClick={handleLogin}
+                disabled={loginLoading}
                 className="w-full bg-gradient-to-r from-[#d4a039] to-[#b8882e] text-[#0a0a0a] font-bold"
               >
-                Ingresar
+                {loginLoading ? 'Verificando...' : 'Ingresar'}
               </Button>
 
               <button
+                onClick={() => setShowForgotPassword(true)}
+                className="text-sm text-[#d4a039] hover:text-[#e8b94a] mt-4 block mx-auto transition-colors flex items-center gap-1 justify-center"
+              >
+                <HelpCircle className="w-3.5 h-3.5" />
+                ¿Olvidaste tu contraseña?
+              </button>
+
+              <button
                 onClick={() => setView('home')}
-                className="text-sm text-[#a0a0a0] hover:text-[#d4a039] mt-4 block mx-auto transition-colors"
+                className="text-sm text-[#a0a0a0] hover:text-[#d4a039] mt-2 block mx-auto transition-colors"
               >
                 Volver al inicio
               </button>
@@ -1559,8 +1749,74 @@ function AdminView({ setView }: { setView: (v: View) => void }) {
     )
   }
 
+  // Change password dialog
+  const changePasswordDialog = (
+    <Dialog open={showChangePassword} onOpenChange={setShowChangePassword}>
+      <DialogContent className="bg-[#1f1f1f] border-[#2a2a2a] max-w-md">
+        <DialogHeader>
+          <DialogTitle className="text-[#f5f5f5] flex items-center gap-2">
+            <Key className="w-5 h-5 text-[#d4a039]" />
+            Cambiar Contraseña
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div>
+            <Label className="text-[#a0a0a0] text-sm mb-1 block">Contraseña actual</Label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#3a3a3a]" />
+              <Input
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                placeholder="Contraseña actual"
+                className="bg-[#0a0a0a] border-[#2a2a2a] text-[#f5f5f5] placeholder:text-[#3a3a3a] focus:border-[#d4a039] pl-10"
+              />
+            </div>
+          </div>
+          <div>
+            <Label className="text-[#a0a0a0] text-sm mb-1 block">Nueva contraseña</Label>
+            <div className="relative">
+              <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#3a3a3a]" />
+              <Input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Mínimo 6 caracteres"
+                className="bg-[#0a0a0a] border-[#2a2a2a] text-[#f5f5f5] placeholder:text-[#3a3a3a] focus:border-[#d4a039] pl-10"
+              />
+            </div>
+          </div>
+          <div>
+            <Label className="text-[#a0a0a0] text-sm mb-1 block">Confirmar nueva contraseña</Label>
+            <div className="relative">
+              <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#3a3a3a]" />
+              <Input
+                type="password"
+                value={confirmNewPassword}
+                onChange={(e) => setConfirmNewPassword(e.target.value)}
+                placeholder="Repetir nueva contraseña"
+                className="bg-[#0a0a0a] border-[#2a2a2a] text-[#f5f5f5] placeholder:text-[#3a3a3a] focus:border-[#d4a039] pl-10"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleChangePassword()
+                }}
+              />
+            </div>
+          </div>
+          <Button
+            onClick={handleChangePassword}
+            disabled={changePasswordLoading}
+            className="w-full bg-gradient-to-r from-[#d4a039] to-[#b8882e] text-[#0a0a0a] font-bold"
+          >
+            {changePasswordLoading ? 'Actualizando...' : 'Cambiar Contraseña'}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+
   return (
     <div className="min-h-screen bg-[#0a0a0a]">
+      {changePasswordDialog}
       <div className="max-w-6xl mx-auto px-4 py-6 sm:py-10">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
@@ -1568,15 +1824,40 @@ function AdminView({ setView }: { setView: (v: View) => void }) {
             <h1 className="text-xl sm:text-2xl font-bold text-[#f5f5f5]">Panel de Administración</h1>
             <p className="text-sm text-[#a0a0a0]">Gestiona las citas de Omani Barbershop</p>
           </div>
-          <Button
-            onClick={() => setView('home')}
-            variant="outline"
-            size="sm"
-            className="border-[#2a2a2a] text-[#a0a0a0] hover:text-[#f5f5f5]"
-          >
-            <ChevronLeft className="w-4 h-4 mr-1" />
-            Inicio
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={() => setShowChangePassword(true)}
+              variant="outline"
+              size="sm"
+              className="border-[#2a2a2a] text-[#a0a0a0] hover:text-[#d4a039] hover:border-[#d4a039]/50"
+              title="Cambiar contraseña"
+            >
+              <Key className="w-4 h-4 sm:mr-1" />
+              <span className="hidden sm:inline">Contraseña</span>
+            </Button>
+            <Button
+              onClick={() => {
+                setIsAuthenticated(false)
+                setPassword('')
+              }}
+              variant="outline"
+              size="sm"
+              className="border-[#2a2a2a] text-[#a0a0a0] hover:text-red-400 hover:border-red-500/30"
+              title="Cerrar sesión"
+            >
+              <Lock className="w-4 h-4 sm:mr-1" />
+              <span className="hidden sm:inline">Salir</span>
+            </Button>
+            <Button
+              onClick={() => setView('home')}
+              variant="outline"
+              size="sm"
+              className="border-[#2a2a2a] text-[#a0a0a0] hover:text-[#f5f5f5]"
+            >
+              <ChevronLeft className="w-4 h-4 mr-1" />
+              Inicio
+            </Button>
+          </div>
         </div>
 
         {/* Stats */}

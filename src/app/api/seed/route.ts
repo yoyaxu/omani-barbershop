@@ -10,7 +10,6 @@ export async function POST() {
       return NextResponse.json({ message: 'Los servicios ya existen', count: existingServices })
     }
 
-    // The seed is handled by ensureDbInitialized
     return NextResponse.json({ message: 'Servicios creados exitosamente' })
   } catch (error) {
     console.error('Error seeding services:', error)

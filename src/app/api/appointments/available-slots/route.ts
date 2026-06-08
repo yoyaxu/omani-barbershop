@@ -55,7 +55,8 @@ export async function GET(request: NextRequest) {
     })
 
     return NextResponse.json(availableSlots)
-  } catch {
+  } catch (error) {
+    console.error('Error fetching available slots:', error)
     return NextResponse.json(
       { error: 'Error al obtener horarios disponibles' },
       { status: 500 }

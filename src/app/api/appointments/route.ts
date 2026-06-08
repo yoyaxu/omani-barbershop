@@ -25,7 +25,8 @@ export async function GET(request: NextRequest) {
     })
 
     return NextResponse.json(appointments)
-  } catch {
+  } catch (error) {
+    console.error('Error fetching appointments:', error)
     return NextResponse.json(
       { error: 'Error al obtener citas' },
       { status: 500 }
@@ -56,7 +57,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check for double-booking - if there's already an appointment at this date/time
+    // Check for double-booking
     const existingAppointment = await db.appointment.findFirst({
       where: {
         date,
