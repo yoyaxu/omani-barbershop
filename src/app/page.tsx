@@ -8,7 +8,7 @@ import {
   Shield, Users, DollarSign, TrendingUp, AlertCircle,
   Trash2, Eye, UserPlus, ChevronDown, Star, Sparkles,
   MessageCircle, RotateCcw, Sun, Moon, Key, Lock, HelpCircle,
-  ImagePlus, ExternalLink
+  ImagePlus
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -332,9 +332,6 @@ function HomeView({ setView }: { setView: (v: View) => void }) {
   const [services, setServices] = useState<Service[]>([])
   const [servicesLoaded, setServicesLoaded] = useState(false)
   const [galleryImages, setGalleryImages] = useState<string[]>([])
-  const [galleryMode, setGalleryMode] = useState<'manual' | 'widget'>('manual')
-  const [instagramWidget, setInstagramWidget] = useState<string>('')
-  const [beholdLoaded, setBeholdLoaded] = useState(false)
 
   useEffect(() => {
     fetch('/api/services')
@@ -346,27 +343,11 @@ function HomeView({ setView }: { setView: (v: View) => void }) {
       .catch(() => setServicesLoaded(true))
   }, [])
 
-  // Helper: extract Behold feed-id from HTML or return as-is if already just an ID
-  const extractBeholdFeedId = (value: string): string => {
-    if (!value) return ''
-    if (!value.includes('<')) return value.trim()
-    const feedIdMatch = value.match(/feed-id=["']([^"']+)["']/)
-    if (feedIdMatch) return feedIdMatch[1]
-    const widgetIdMatch = value.match(/data-widget-id=["']([^"']+)["']/)
-    if (widgetIdMatch) return widgetIdMatch[1]
-    return value.trim()
-  }
-
   // Fetch site settings for gallery
   useEffect(() => {
     fetch('/api/settings')
       .then((r) => r.json())
       .then((data) => {
-        if (data.galleryMode) setGalleryMode(data.galleryMode)
-        if (data.instagramWidget) {
-          const feedId = extractBeholdFeedId(data.instagramWidget)
-          setInstagramWidget(feedId)
-        }
         if (data.galleryImages) {
           try {
             const imgs = typeof data.galleryImages === 'string' ? JSON.parse(data.galleryImages) : data.galleryImages
@@ -376,22 +357,6 @@ function HomeView({ setView }: { setView: (v: View) => void }) {
       })
       .catch(() => {})
   }, [])
-
-  // Load Behold.so script when widget mode is active
-  useEffect(() => {
-    if (galleryMode === 'widget' && instagramWidget) {
-      const existingScript = document.querySelector('script[src="https://w.behold.so/widget.js"]')
-      if (existingScript) {
-        setBeholdLoaded(true)
-        return
-      }
-      const script = document.createElement('script')
-      script.type = 'module'
-      script.src = 'https://w.behold.so/widget.js'
-      script.onload = () => setBeholdLoaded(true)
-      document.head.appendChild(script)
-    }
-  }, [galleryMode, instagramWidget])
 
   // Seed on first load if no services
   useEffect(() => {
@@ -712,18 +677,7 @@ function HomeView({ setView }: { setView: (v: View) => void }) {
             </a>
           </motion.div>
 
-          {galleryMode === 'widget' && instagramWidget ? (
-            <div className="flex justify-center">
-              {beholdLoaded ? null : (
-                <div className="flex items-center justify-center py-12">
-                  <div className="w-8 h-8 border-2 border-[#d4a039] border-t-transparent rounded-full animate-spin" />
-                </div>
-              )}
-              {/* @ts-expect-error - behold-widget is a custom element from Behold.so */}
-              <behold-widget feed-id={instagramWidget}></behold-widget>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
               {(galleryImages.length > 0 ? galleryImages : ['/instagram/insta1.png', '/instagram/insta2.png', '/instagram/insta3.png', '/instagram/insta4.png', '/instagram/insta5.png', '/instagram/insta6.png']).map((src, i) => (
                 <motion.a
                   key={i}
@@ -747,7 +701,6 @@ function HomeView({ setView }: { setView: (v: View) => void }) {
                 </motion.a>
               ))}
             </div>
-          )}
         </div>
       </section>
 
@@ -1499,13 +1452,11 @@ function AdminView({ setView }: { setView: (v: View) => void }) {
   const [changePasswordLoading, setChangePasswordLoading] = useState(false)
 
   // Instagram gallery management state
-  const [galleryMode, setGalleryMode] = useState<'manual' | 'widget'>('manual')
   const [galleryImages, setGalleryImages] = useState<string[]>([])
   const [newImageUrl, setNewImageUrl] = useState('')
-  const [instagramWidget, setInstagramWidget] = useState('')
+  const [uploadingImage, setUploadingImage] = useState(false)
   const [settingsLoaded, setSettingsLoaded] = useState(false)
   const [savingSettings, setSavingSettings] = useState(false)
-  const [adminBeholdLoaded, setAdminBeholdLoaded] = useState(false)
 
   const fetchAppointments = useCallback(async () => {
     try {
@@ -1523,20 +1474,6 @@ function AdminView({ setView }: { setView: (v: View) => void }) {
     }
   }, [filterDate, filterStatus])
 
-  // Helper: extract Behold feed-id from HTML or return as-is if already just an ID
-  const extractBeholdFeedId = (value: string): string => {
-    if (!value) return ''
-    // If it looks like a feed ID (no HTML tags), return as-is
-    if (!value.includes('<')) return value.trim()
-    // Try to extract feed-id from behold-widget element
-    const feedIdMatch = value.match(/feed-id=["']([^"']+)["']/)
-    if (feedIdMatch) return feedIdMatch[1]
-    // Try to extract data-widget-id
-    const widgetIdMatch = value.match(/data-widget-id=["']([^"']+)["']/)
-    if (widgetIdMatch) return widgetIdMatch[1]
-    return value.trim()
-  }
-
   useEffect(() => {
     if (isAuthenticated) {
       fetchAppointments()
@@ -1544,11 +1481,6 @@ function AdminView({ setView }: { setView: (v: View) => void }) {
       fetch('/api/settings')
         .then((r) => r.json())
         .then((data) => {
-          if (data.galleryMode) setGalleryMode(data.galleryMode as 'manual' | 'widget')
-          if (data.instagramWidget) {
-            const feedId = extractBeholdFeedId(data.instagramWidget)
-            setInstagramWidget(feedId)
-          }
           if (data.galleryImages) {
             try {
               const imgs = typeof data.galleryImages === 'string' ? JSON.parse(data.galleryImages) : data.galleryImages
@@ -1560,22 +1492,6 @@ function AdminView({ setView }: { setView: (v: View) => void }) {
         .catch(() => setSettingsLoaded(true))
     }
   }, [isAuthenticated, fetchAppointments])
-
-  // Load Behold.so script in admin when widget mode is active
-  useEffect(() => {
-    if (isAuthenticated && galleryMode === 'widget' && instagramWidget) {
-      const existingScript = document.querySelector('script[src="https://w.behold.so/widget.js"]')
-      if (existingScript) {
-        setAdminBeholdLoaded(true)
-        return
-      }
-      const script = document.createElement('script')
-      script.type = 'module'
-      script.src = 'https://w.behold.so/widget.js'
-      script.onload = () => setAdminBeholdLoaded(true)
-      document.head.appendChild(script)
-    }
-  }, [isAuthenticated, galleryMode, instagramWidget])
 
   const handleLogin = async () => {
     setLoginLoading(true)
@@ -1716,9 +1632,9 @@ function AdminView({ setView }: { setView: (v: View) => void }) {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          galleryMode,
+          galleryMode: 'manual',
           galleryImages,
-          instagramWidget: galleryMode === 'widget' ? instagramWidget : null,
+          instagramWidget: null,
         }),
       })
       if (res.ok) {
@@ -1730,6 +1646,39 @@ function AdminView({ setView }: { setView: (v: View) => void }) {
       toast.error('Error de conexión')
     } finally {
       setSavingSettings(false)
+    }
+  }
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+
+    setUploadingImage(true)
+    try {
+      for (const file of Array.from(files)) {
+        const formData = new FormData()
+        formData.append('file', file)
+
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        })
+
+        if (res.ok) {
+          const data = await res.json()
+          setGalleryImages(prev => [...prev, data.url])
+        } else {
+          const data = await res.json()
+          toast.error(data.error || 'Error al subir imagen')
+        }
+      }
+      toast.success('Imagen(es) subida(s)')
+    } catch {
+      toast.error('Error al subir imagen')
+    } finally {
+      setUploadingImage(false)
+      // Reset file input
+      e.target.value = ''
     }
   }
 
@@ -2103,123 +2052,97 @@ function AdminView({ setView }: { setView: (v: View) => void }) {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Mode selector */}
+            {/* Upload area */}
             <div>
-              <Label className="text-[#a0a0a0] text-sm mb-2 block">Modo de galería</Label>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setGalleryMode('manual')}
-                  className={`flex-1 p-3 rounded-lg border text-sm font-medium transition-all ${
-                    galleryMode === 'manual'
-                      ? 'border-[#d4a039] bg-[#d4a039]/10 text-[#d4a039]'
-                      : 'border-[#2a2a2a] bg-[#0a0a0a] text-[#a0a0a0] hover:border-[#3a3a3a]'
-                  }`}
+              <Label className="text-[#a0a0a0] text-sm mb-2 block">Subir fotos</Label>
+              <label className={`flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-6 cursor-pointer transition-all ${
+                uploadingImage
+                  ? 'border-[#d4a039] bg-[#d4a039]/5'
+                  : 'border-[#2a2a2a] hover:border-[#d4a039]/50 hover:bg-[#d4a039]/5'
+              }`}>
+                {uploadingImage ? (
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="w-8 h-8 border-2 border-[#d4a039] border-t-transparent rounded-full animate-spin" />
+                    <span className="text-[#a0a0a0] text-sm">Subiendo...</span>
+                  </div>
+                ) : (
+                  <>
+                    <ImagePlus className="w-8 h-8 text-[#3a3a3a] mb-2" />
+                    <span className="text-[#a0a0a0] text-sm font-medium">Haz clic para subir fotos</span>
+                    <span className="text-[#3a3a3a] text-xs mt-1">JPG, PNG, GIF o WebP (máx. 5MB)</span>
+                  </>
+                )}
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/gif,image/webp"
+                  multiple
+                  onChange={handleFileUpload}
+                  className="hidden"
+                  disabled={uploadingImage}
+                />
+              </label>
+            </div>
+
+            {/* URL input fallback */}
+            <div>
+              <Label className="text-[#a0a0a0] text-xs mb-1 block">O pega una URL de imagen</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={newImageUrl}
+                  onChange={(e) => setNewImageUrl(e.target.value)}
+                  placeholder="https://ejemplo.com/imagen.jpg"
+                  className="bg-[#0a0a0a] border-[#2a2a2a] text-[#f5f5f5] placeholder:text-[#3a3a3a] focus:border-[#d4a039]"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') addGalleryImage()
+                  }}
+                />
+                <Button
+                  onClick={addGalleryImage}
+                  size="icon"
+                  className="bg-[#d4a039] text-[#0a0a0a] hover:bg-[#b8882e] shrink-0"
                 >
-                  <ImagePlus className="w-4 h-4 mx-auto mb-1" />
-                  Imágenes manuales
-                </button>
-                <button
-                  onClick={() => setGalleryMode('widget')}
-                  className={`flex-1 p-3 rounded-lg border text-sm font-medium transition-all ${
-                    galleryMode === 'widget'
-                      ? 'border-[#d4a039] bg-[#d4a039]/10 text-[#d4a039]'
-                      : 'border-[#2a2a2a] bg-[#0a0a0a] text-[#a0a0a0] hover:border-[#3a3a3a]'
-                  }`}
-                >
-                  <ExternalLink className="w-4 h-4 mx-auto mb-1" />
-                  Widget automático
-                </button>
+                  <ImagePlus className="w-4 h-4" />
+                </Button>
               </div>
             </div>
 
-            {galleryMode === 'manual' ? (
-              <div className="space-y-3">
-                <p className="text-[#a0a0a0] text-xs">
-                  Agrega URLs de imágenes para la galería. Puedes subir imágenes a servicios como imgur.com o usar URLs directas.
-                </p>
-                <div className="flex gap-2">
-                  <Input
-                    value={newImageUrl}
-                    onChange={(e) => setNewImageUrl(e.target.value)}
-                    placeholder="https://ejemplo.com/imagen.jpg"
-                    className="bg-[#0a0a0a] border-[#2a2a2a] text-[#f5f5f5] placeholder:text-[#3a3a3a] focus:border-[#d4a039]"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') addGalleryImage()
-                    }}
-                  />
-                  <Button
-                    onClick={addGalleryImage}
-                    size="icon"
-                    className="bg-[#d4a039] text-[#0a0a0a] hover:bg-[#b8882e] shrink-0"
+            {/* Image gallery grid */}
+            {galleryImages.length > 0 ? (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[#a0a0a0] text-xs">{galleryImages.length} imagen(es)</span>
+                  <button
+                    onClick={() => setGalleryImages([])}
+                    className="text-red-400 hover:text-red-300 text-xs transition-colors"
                   >
-                    <ImagePlus className="w-4 h-4" />
-                  </Button>
+                    Eliminar todas
+                  </button>
                 </div>
-                {galleryImages.length > 0 ? (
-                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
-                    {galleryImages.map((img, i) => (
-                      <div key={i} className="relative group aspect-square rounded-lg overflow-hidden border border-[#2a2a2a]">
-                        <img
-                          src={img}
-                          alt={`Galería ${i + 1}`}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = '/instagram/insta1.png'
-                          }}
-                        />
-                        <button
-                          onClick={() => removeGalleryImage(i)}
-                          className="absolute top-1 right-1 w-5 h-5 bg-red-500/80 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <X className="w-3 h-3 text-white" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-[#3a3a3a] text-sm text-center py-4">
-                    No hay imágenes. Agrega URLs arriba o las imágenes por defecto se mostrarán.
-                  </p>
-                )}
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
+                  {galleryImages.map((img, i) => (
+                    <div key={img.substring(0, 50) + '-' + i} className="relative group aspect-square rounded-lg overflow-hidden border border-[#2a2a2a]">
+                      <img
+                        src={img}
+                        alt={`Galería ${i + 1}`}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = '/instagram/insta1.png'
+                        }}
+                      />
+                      <button
+                        onClick={() => removeGalleryImage(i)}
+                        className="absolute top-1 right-1 w-5 h-5 bg-red-500/80 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="w-3 h-3 text-white" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
             ) : (
-              <div className="space-y-3">
-                <div className="bg-[#0a0a0a] rounded-lg p-3 border border-[#2a2a2a]">
-                  <p className="text-[#a0a0a0] text-xs mb-2">
-                    <strong className="text-[#f5f5f5]">¿Cómo configurar el widget automático?</strong>
-                  </p>
-                  <ol className="text-[#a0a0a0] text-xs space-y-1 list-decimal list-inside">
-                    <li>Ve a <a href="https://behold.so" target="_blank" rel="noopener noreferrer" className="text-[#d4a039] hover:underline">behold.so</a> y crea una cuenta gratis</li>
-                    <li>Conecta tu cuenta de Instagram @omani_barbershop</li>
-                    <li>Crea un widget y copia el <strong className="text-[#f5f5f5]">Feed ID</strong></li>
-                    <li>Pégalo en el campo de abajo y guarda</li>
-                  </ol>
-                </div>
-                <div>
-                  <Label className="text-[#a0a0a0] text-xs mb-1 block">Behold Feed ID</Label>
-                  <Input
-                    value={instagramWidget}
-                    onChange={(e) => setInstagramWidget(e.target.value)}
-                    placeholder="Ejemplo: ueVXR2S2Fzy34ykn0XD3"
-                    className="bg-[#0a0a0a] border-[#2a2a2a] text-[#f5f5f5] placeholder:text-[#3a3a3a] focus:border-[#d4a039] font-mono text-sm"
-                  />
-                  <p className="text-[#3a3a3a] text-xs mt-1">Encuéntralo en behold.so → Tu widget → Feed ID</p>
-                </div>
-                {instagramWidget && (
-                  <div className="border border-[#2a2a2a] rounded-lg p-3">
-                    <p className="text-[#a0a0a0] text-xs mb-2">Vista previa del widget:</p>
-                    <div className="flex justify-center min-h-[100px]">
-                      {adminBeholdLoaded ? null : (
-                        <div className="flex items-center justify-center">
-                          <div className="w-6 h-6 border-2 border-[#d4a039] border-t-transparent rounded-full animate-spin" />
-                        </div>
-                      )}
-                      {/* @ts-expect-error - behold-widget is a custom element from Behold.so */}
-                      <behold-widget feed-id={instagramWidget}></behold-widget>
-                    </div>
-                  </div>
-                )}
-              </div>
+              <p className="text-[#3a3a3a] text-sm text-center py-4">
+                No hay imágenes. Sube fotos arriba o las imágenes por defecto se mostrarán.
+              </p>
             )}
           </CardContent>
         </Card>
