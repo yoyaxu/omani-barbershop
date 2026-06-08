@@ -334,6 +334,7 @@ function HomeView({ setView }: { setView: (v: View) => void }) {
   const [galleryImages, setGalleryImages] = useState<string[]>([])
   const [galleryMode, setGalleryMode] = useState<'manual' | 'widget'>('manual')
   const [instagramWidget, setInstagramWidget] = useState<string>('')
+  const [beholdLoaded, setBeholdLoaded] = useState(false)
 
   useEffect(() => {
     fetch('/api/services')
@@ -345,13 +346,27 @@ function HomeView({ setView }: { setView: (v: View) => void }) {
       .catch(() => setServicesLoaded(true))
   }, [])
 
+  // Helper: extract Behold feed-id from HTML or return as-is if already just an ID
+  const extractBeholdFeedId = (value: string): string => {
+    if (!value) return ''
+    if (!value.includes('<')) return value.trim()
+    const feedIdMatch = value.match(/feed-id=["']([^"']+)["']/)
+    if (feedIdMatch) return feedIdMatch[1]
+    const widgetIdMatch = value.match(/data-widget-id=["']([^"']+)["']/)
+    if (widgetIdMatch) return widgetIdMatch[1]
+    return value.trim()
+  }
+
   // Fetch site settings for gallery
   useEffect(() => {
     fetch('/api/settings')
       .then((r) => r.json())
       .then((data) => {
         if (data.galleryMode) setGalleryMode(data.galleryMode)
-        if (data.instagramWidget) setInstagramWidget(data.instagramWidget)
+        if (data.instagramWidget) {
+          const feedId = extractBeholdFeedId(data.instagramWidget)
+          setInstagramWidget(feedId)
+        }
         if (data.galleryImages) {
           try {
             const imgs = typeof data.galleryImages === 'string' ? JSON.parse(data.galleryImages) : data.galleryImages
@@ -361,6 +376,22 @@ function HomeView({ setView }: { setView: (v: View) => void }) {
       })
       .catch(() => {})
   }, [])
+
+  // Load Behold.so script when widget mode is active
+  useEffect(() => {
+    if (galleryMode === 'widget' && instagramWidget) {
+      const existingScript = document.querySelector('script[src="https://w.behold.so/widget.js"]')
+      if (existingScript) {
+        setBeholdLoaded(true)
+        return
+      }
+      const script = document.createElement('script')
+      script.type = 'module'
+      script.src = 'https://w.behold.so/widget.js'
+      script.onload = () => setBeholdLoaded(true)
+      document.head.appendChild(script)
+    }
+  }, [galleryMode, instagramWidget])
 
   // Seed on first load if no services
   useEffect(() => {
@@ -682,7 +713,15 @@ function HomeView({ setView }: { setView: (v: View) => void }) {
           </motion.div>
 
           {galleryMode === 'widget' && instagramWidget ? (
-            <div dangerouslySetInnerHTML={{ __html: instagramWidget }} />
+            <div className="flex justify-center">
+              {beholdLoaded ? null : (
+                <div className="flex items-center justify-center py-12">
+                  <div className="w-8 h-8 border-2 border-[#d4a039] border-t-transparent rounded-full animate-spin" />
+                </div>
+              )}
+              {/* @ts-expect-error - behold-widget is a custom element from Behold.so */}
+              <behold-widget feed-id={instagramWidget}></behold-widget>
+            </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
               {(galleryImages.length > 0 ? galleryImages : ['/instagram/insta1.png', '/instagram/insta2.png', '/instagram/insta3.png', '/instagram/insta4.png', '/instagram/insta5.png', '/instagram/insta6.png']).map((src, i) => (
@@ -1466,6 +1505,7 @@ function AdminView({ setView }: { setView: (v: View) => void }) {
   const [instagramWidget, setInstagramWidget] = useState('')
   const [settingsLoaded, setSettingsLoaded] = useState(false)
   const [savingSettings, setSavingSettings] = useState(false)
+  const [adminBeholdLoaded, setAdminBeholdLoaded] = useState(false)
 
   const fetchAppointments = useCallback(async () => {
     try {
@@ -1483,6 +1523,20 @@ function AdminView({ setView }: { setView: (v: View) => void }) {
     }
   }, [filterDate, filterStatus])
 
+  // Helper: extract Behold feed-id from HTML or return as-is if already just an ID
+  const extractBeholdFeedId = (value: string): string => {
+    if (!value) return ''
+    // If it looks like a feed ID (no HTML tags), return as-is
+    if (!value.includes('<')) return value.trim()
+    // Try to extract feed-id from behold-widget element
+    const feedIdMatch = value.match(/feed-id=["']([^"']+)["']/)
+    if (feedIdMatch) return feedIdMatch[1]
+    // Try to extract data-widget-id
+    const widgetIdMatch = value.match(/data-widget-id=["']([^"']+)["']/)
+    if (widgetIdMatch) return widgetIdMatch[1]
+    return value.trim()
+  }
+
   useEffect(() => {
     if (isAuthenticated) {
       fetchAppointments()
@@ -1491,7 +1545,10 @@ function AdminView({ setView }: { setView: (v: View) => void }) {
         .then((r) => r.json())
         .then((data) => {
           if (data.galleryMode) setGalleryMode(data.galleryMode as 'manual' | 'widget')
-          if (data.instagramWidget) setInstagramWidget(data.instagramWidget)
+          if (data.instagramWidget) {
+            const feedId = extractBeholdFeedId(data.instagramWidget)
+            setInstagramWidget(feedId)
+          }
           if (data.galleryImages) {
             try {
               const imgs = typeof data.galleryImages === 'string' ? JSON.parse(data.galleryImages) : data.galleryImages
@@ -1503,6 +1560,22 @@ function AdminView({ setView }: { setView: (v: View) => void }) {
         .catch(() => setSettingsLoaded(true))
     }
   }, [isAuthenticated, fetchAppointments])
+
+  // Load Behold.so script in admin when widget mode is active
+  useEffect(() => {
+    if (isAuthenticated && galleryMode === 'widget' && instagramWidget) {
+      const existingScript = document.querySelector('script[src="https://w.behold.so/widget.js"]')
+      if (existingScript) {
+        setAdminBeholdLoaded(true)
+        return
+      }
+      const script = document.createElement('script')
+      script.type = 'module'
+      script.src = 'https://w.behold.so/widget.js'
+      script.onload = () => setAdminBeholdLoaded(true)
+      document.head.appendChild(script)
+    }
+  }, [isAuthenticated, galleryMode, instagramWidget])
 
   const handleLogin = async () => {
     setLoginLoading(true)
@@ -2116,23 +2189,34 @@ function AdminView({ setView }: { setView: (v: View) => void }) {
                     <strong className="text-[#f5f5f5]">¿Cómo configurar el widget automático?</strong>
                   </p>
                   <ol className="text-[#a0a0a0] text-xs space-y-1 list-decimal list-inside">
-                    <li>Ve a <a href="https://elfsight.com/instagram-feed-instashow/" target="_blank" rel="noopener noreferrer" className="text-[#d4a039] hover:underline">elfsight.com</a> o <a href="https://behold.so" target="_blank" rel="noopener noreferrer" className="text-[#d4a039] hover:underline">behold.so</a> (ambos tienen plan gratis)</li>
-                    <li>Crea una cuenta y conecta @omani_barbershop</li>
-                    <li>Personaliza el widget y copia el código HTML</li>
-                    <li>Pégalo abajo y guarda</li>
+                    <li>Ve a <a href="https://behold.so" target="_blank" rel="noopener noreferrer" className="text-[#d4a039] hover:underline">behold.so</a> y crea una cuenta gratis</li>
+                    <li>Conecta tu cuenta de Instagram @omani_barbershop</li>
+                    <li>Crea un widget y copia el <strong className="text-[#f5f5f5]">Feed ID</strong></li>
+                    <li>Pégalo en el campo de abajo y guarda</li>
                   </ol>
                 </div>
-                <Textarea
-                  value={instagramWidget}
-                  onChange={(e) => setInstagramWidget(e.target.value)}
-                  placeholder='Pega aquí el código del widget de Instagram, por ejemplo:&#10;<script src="https://w.behold.so/widget.js" data-widget-id="xxx"></script>&#10;<div id="behold-widget"></div>'
-                  className="bg-[#0a0a0a] border-[#2a2a2a] text-[#f5f5f5] placeholder:text-[#3a3a3a] focus:border-[#d4a039] min-h-[100px] font-mono text-xs"
-                  rows={5}
-                />
+                <div>
+                  <Label className="text-[#a0a0a0] text-xs mb-1 block">Behold Feed ID</Label>
+                  <Input
+                    value={instagramWidget}
+                    onChange={(e) => setInstagramWidget(e.target.value)}
+                    placeholder="Ejemplo: ueVXR2S2Fzy34ykn0XD3"
+                    className="bg-[#0a0a0a] border-[#2a2a2a] text-[#f5f5f5] placeholder:text-[#3a3a3a] focus:border-[#d4a039] font-mono text-sm"
+                  />
+                  <p className="text-[#3a3a3a] text-xs mt-1">Encuéntralo en behold.so → Tu widget → Feed ID</p>
+                </div>
                 {instagramWidget && (
                   <div className="border border-[#2a2a2a] rounded-lg p-3">
                     <p className="text-[#a0a0a0] text-xs mb-2">Vista previa del widget:</p>
-                    <div className="overflow-hidden" dangerouslySetInnerHTML={{ __html: instagramWidget }} />
+                    <div className="flex justify-center min-h-[100px]">
+                      {adminBeholdLoaded ? null : (
+                        <div className="flex items-center justify-center">
+                          <div className="w-6 h-6 border-2 border-[#d4a039] border-t-transparent rounded-full animate-spin" />
+                        </div>
+                      )}
+                      {/* @ts-expect-error - behold-widget is a custom element from Behold.so */}
+                      <behold-widget feed-id={instagramWidget}></behold-widget>
+                    </div>
                   </div>
                 )}
               </div>
